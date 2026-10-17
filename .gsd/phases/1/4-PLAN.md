@@ -6,161 +6,156 @@ depends_on: [1, 2]
 gap_closure: false
 ---
 
-# Plan 1.4: Environment Configuration & Docker Compose for PostgreSQL
+# Plan 1.4: Environment Configuration, .gitignore & Database Verification
 
 ## Objective
-Create the Docker Compose configuration for PostgreSQL, environment files for both backend and frontend, and verify the full backend ↔ database connection works end-to-end.
+Set up the project-wide environment configuration, ensure .env is gitignored, and verify end-to-end connectivity between the FastAPI backend and the existing local PostgreSQL medismart_db. No Docker Compose — PostgreSQL is already running locally.
 
 ## Context
 Load these files for context:
-- backend/app/core/config.py
-- backend/app/core/database.py
-- backend/requirements.txt
+- backend/app/core/config.py (created in Plan 1.1)
+- backend/app/core/database.py (created in Plan 1.2)
+- backend/.env (created in Plan 1.1)
 
 ## Tasks
 
 <task type="auto" effort="medium">
-  <name>Create Docker Compose for PostgreSQL and environment files</name>
+  <name>Create project .gitignore and verify environment configuration</name>
   <files>
-    docker-compose.yml
+    .gitignore
     backend/.env
     backend/.env.example
-    .gitignore
   </files>
   <action>
-    1. Create `docker-compose.yml` in project root:
-       ```yaml
-       services:
-         db:
-           image: postgres:16-alpine
-           environment:
-             POSTGRES_DB: medismart
-             POSTGRES_USER: postgres
-             POSTGRES_PASSWORD: postgres
-           ports:
-             - "5432:5432"
-           volumes:
-             - pgdata:/var/lib/postgresql/data
-           healthcheck:
-             test: ["CMD-SHELL", "pg_isready -U postgres"]
-             interval: 5s
-             timeout: 5s
-             retries: 5
-
-       volumes:
-         pgdata:
+    1. Create/update root `.gitignore` (additive — do NOT remove existing entries
+       if a .gitignore already exists):
        ```
-
-    2. Create `backend/.env` (actual env file, gitignored):
-       ```
-       DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/medismart
-       SECRET_KEY=dev-secret-change-in-production
-       CORS_ORIGINS=["http://localhost:5173"]
-       ```
-
-    3. Update `backend/.env.example` (template, committed):
-       ```
-       DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/medismart
-       SECRET_KEY=change-this-to-a-random-secret
-       CORS_ORIGINS=["http://localhost:5173"]
-       ```
-
-    4. Create/update root `.gitignore`:
-       ```
-       # Environment
+       # Environment files
        .env
        backend/.env
-       
+
        # Python
        __pycache__/
        *.pyc
        *.pyo
        .venv/
        venv/
-       
+       *.egg-info/
+
        # Node
        node_modules/
        dist/
-       
+
        # IDE
        .vscode/
        .idea/
-       
+       *.swp
+       *.swo
+
        # OS
        .DS_Store
        Thumbs.db
+
+       # Test
+       .coverage
+       htmlcov/
+       .pytest_cache/
        ```
 
-    AVOID: Committing .env files with real credentials
-    USE: Docker healthcheck so dependent services know when DB is ready
+    2. Verify backend/.env exists with correct medismart_db connection:
+       DATABASE_URL=postgresql+asyncpg://postgres:YOUR_PASSWORD@localhost:5432/medismart_db
+       If the user hasn't set their password, prompt them to update .env.
+
+    3. Verify backend/.env.example is correct and ready to commit.
+
+    4. Verify frontend/.gitignore exists (created by Vite scaffold).
+
+    AVOID: Committing .env files with any credentials
+    AVOID: Overwriting existing .gitignore entries
+    USE: Separate .gitignore entries for Python and Node artifacts
   </action>
   <verify>
-    docker compose up -d db
-    docker compose ps
+    git status --short backend/.env
   </verify>
   <done>
-    - PostgreSQL container starts and passes healthcheck
-    - `docker compose ps` shows db service as "healthy"
-    - .env file exists but is gitignored
+    - .gitignore includes .env, __pycache__, node_modules, .venv
+    - backend/.env is NOT tracked by git (shows ?? or is absent from git status)
+    - backend/.env.example contains template values
   </done>
 </task>
 
 <task type="auto" effort="medium">
-  <name>Verify backend connects to PostgreSQL and run migrations</name>
+  <name>Verify full backend ↔ database connectivity and run migrations</name>
   <files>
-    backend/app/main.py
+    backend/app/core/database.py
     backend/alembic/env.py
   </files>
   <action>
-    1. With PostgreSQL running (docker compose up -d db), test the connection:
+    1. Verify PostgreSQL is running locally:
        ```
+       psql -U postgres -d medismart_db -c "SELECT version();"
+       ```
+       If this fails, prompt the user to start their PostgreSQL service.
+
+    2. Test async database connection from Python:
+       ```python
        cd backend
        python -c "
        import asyncio
+       from sqlalchemy import text
        from app.core.database import engine
        async def test():
            async with engine.connect() as conn:
                result = await conn.execute(text('SELECT 1'))
                print('Database connected:', result.scalar())
-       from sqlalchemy import text
        asyncio.run(test())
        "
        ```
 
-    2. Run Alembic migrations to create all tables:
+    3. Check if Alembic migration has been applied:
        ```
        cd backend
+       alembic current
+       ```
+
+    4. If migration NOT yet applied, run:
+       ```
        alembic upgrade head
        ```
 
-    3. Verify tables exist:
+    5. Verify tables exist in medismart_db:
        ```
-       docker compose exec db psql -U postgres -d medismart -c "\dt"
+       psql -U postgres -d medismart_db -c "\dt"
        ```
+       Expected: users, hospitals, doctors, appointments, queue_entries (+ alembic_version)
 
-    4. Add a startup event to main.py that logs database connectivity (optional but helpful for debugging).
-
-    AVOID: Running migrations against a database that hasn't started yet
-    USE: Docker healthcheck or a short wait to ensure PostgreSQL is ready
+    AVOID: Running alembic upgrade if tables already exist and aren't stamped
+           (check first, then stamp or upgrade appropriately)
+    AVOID: Any DROP TABLE, DROP DATABASE, or destructive operation
+    USE: alembic stamp head if tables were created outside of Alembic
   </action>
   <verify>
-    docker compose exec db psql -U postgres -d medismart -c "\dt"
+    cd backend
+    python -c "import asyncio; from sqlalchemy import text; from app.core.database import engine; asyncio.run((lambda: None)()  or print('OK'))"
+    alembic current
   </verify>
   <done>
-    - Alembic migration runs without errors
-    - All 5 tables appear in PostgreSQL (\dt output)
-    - Backend can connect to database programmatically
+    - Backend connects to medismart_db via asyncpg
+    - All 5 tables exist in medismart_db
+    - Alembic version table tracks migration state
+    - No data was lost or tables dropped
   </done>
 </task>
 
 ## Must-Haves
 After all tasks complete, verify:
-- [ ] PostgreSQL runs in Docker with persistent volume
-- [ ] Backend connects to database successfully
-- [ ] All 5 tables created via Alembic migration
-- [ ] .env is gitignored, .env.example is committed
+- [ ] .env is gitignored (not tracked)
+- [ ] Backend connects to local PostgreSQL medismart_db
+- [ ] All 5 tables created/verified in medismart_db
+- [ ] Alembic tracks migration state
+- [ ] No Docker dependency required
 
 ## Success Criteria
 - [ ] All tasks verified passing
 - [ ] Must-haves confirmed
-- [ ] Full backend + database stack operational
+- [ ] Full backend + database stack operational using local PostgreSQL

@@ -13,11 +13,11 @@
 
 | Plan | Name | Wave | Depends On |
 |------|------|------|------------|
-| 1.1 | Backend Foundation (FastAPI + Project Structure) | 1 | — |
-| 1.2 | PostgreSQL Database Schema & Connection | 1 | — |
-| 1.3 | Frontend — Tailwind CSS, Routing & Layout Shell | 1 | — |
-| 1.4 | Environment Configuration & Docker Compose | 2 | 1.1, 1.2 |
-| 1.5 | Seed Data — Synthetic Hospitals & Doctors | 2 | 1.2, 1.4 |
+| 1.1 | Backend Foundation (FastAPI + Project Structure + Health Check) | 1 | — |
+| 1.2 | PostgreSQL Database Schema & Connection (Existing Local DB) | 1 | — |
+| 1.3 | Frontend — Tailwind CSS v4, Routing & Layout Shell (Preserve Existing) | 1 | — |
+| 1.4 | Environment Configuration, .gitignore & Database Verification | 2 | 1.1, 1.2 |
+| 1.5 | Basic Tests & Developer Documentation | 2 | 1.1, 1.3, 1.4 |
 
 ## Next Steps
 1. `/execute 1` — Execute all Phase 1 plans
@@ -43,14 +43,15 @@
 
 - Technology stack locked in SPEC.md
 - 9-phase roadmap structure
-- Tailwind CSS v4 with @tailwindcss/vite plugin (not v3 PostCSS pattern)
-- PostgreSQL via Docker Compose
+- Tailwind CSS v4 with @tailwindcss/vite plugin (preserves React 19 + Vite 8)
+- Local PostgreSQL 18.6 with medismart_db (no Docker Compose dependency)
+- String columns for roles/statuses (additive-only migration safety)
 - Synthetic data with [SYNTHETIC] labels
 - UUID primary keys for all database tables
-- Async SQLAlchemy with asyncpg driver
+- Async SQLAlchemy with asyncpg driver (psycopg2 for Alembic sync migrations)
 
 ## Risks / Debt
 
-- Docker must be installed for PostgreSQL
+- Local PostgreSQL service must be running with medismart_db accessible
 - Frontend has no Tailwind CSS yet — addressed in Plan 1.3
 - No backend exists yet — addressed in Plan 1.1

@@ -20,11 +20,11 @@
 **Status**: ⬜ Not Started
 **Objective**: Establish the full-stack project skeleton — backend (FastAPI + PostgreSQL), frontend (React + Vite + Tailwind CSS), database schema, and dev tooling. Both servers run locally and communicate via API.
 **Deliverables**:
-- FastAPI backend with project structure, CORS, health endpoint
-- PostgreSQL database with initial schema (users, hospitals, doctors, appointments, queues)
-- Frontend with Tailwind CSS configured, routing (react-router), and layout shell
-- Environment configuration (.env files, docker-compose for PostgreSQL)
-- Seed data script with synthetic hospitals and doctors
+- FastAPI backend with project structure, CORS, health & DB connectivity endpoints
+- PostgreSQL schema against existing local medismart_db (users, hospitals, doctors, appointments, queues)
+- Frontend with Tailwind CSS v4, routing (react-router), and layout shell (preserving existing Vite setup)
+- Environment configuration (.env gitignored, .env.example template, no mandatory Docker)
+- Basic backend tests (pytest) and comprehensive README.md developer documentation
 **Requirements**: Foundation for all subsequent phases
 
 ### Phase 2: Authentication & User Management

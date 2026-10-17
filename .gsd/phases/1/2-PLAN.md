@@ -5,20 +5,20 @@ wave: 1
 gap_closure: false
 ---
 
-# Plan 1.2: PostgreSQL Database Schema & Connection
+# Plan 1.2: PostgreSQL Database Schema & Connection (Using Existing Local DB)
 
 ## Objective
-Set up PostgreSQL database connection using SQLAlchemy async engine and create the initial schema with Alembic migrations for the core tables: users, hospitals, doctors, appointments, and queues.
+Set up SQLAlchemy 2.x async engine and session against the existing local PostgreSQL 18.6 database (medismart_db), then create the initial schema with Alembic migrations for the 5 core tables. Migrations must be additive — never drop, reset, or recreate the database.
 
 ## Context
 Load these files for context:
 - .gsd/SPEC.md (Users section, Technology Stack)
-- backend/app/core/config.py
+- backend/app/core/config.py (after Plan 1.1 creates it)
 
 ## Tasks
 
 <task type="auto" effort="high">
-  <name>Create SQLAlchemy async database engine and session</name>
+  <name>Create SQLAlchemy async database engine, session, and all 5 models</name>
   <files>
     backend/app/core/database.py
     backend/app/models/base.py
@@ -33,80 +33,93 @@ Load these files for context:
     1. Create `backend/app/core/database.py`:
        - AsyncEngine from create_async_engine(settings.DATABASE_URL)
        - async_sessionmaker with expire_on_commit=False
-       - get_db() async generator yielding AsyncSession (dependency injection)
+       - get_db() async generator yielding AsyncSession (for FastAPI dependency injection)
 
     2. Create `backend/app/models/base.py`:
-       - DeclarativeBase subclass with common fields (id: UUID PK, created_at, updated_at)
+       - DeclarativeBase subclass
+       - Common mixin or base with id (UUID PK), created_at, updated_at
 
     3. Create SQLAlchemy models:
 
        **User** (models/user.py):
        - id: UUID (PK, default uuid4)
-       - email: String(255), unique, indexed
-       - hashed_password: String(255)
-       - full_name: String(255)
+       - email: String(255), unique, indexed, not null
+       - hashed_password: String(255), not null
+       - full_name: String(255), not null
        - phone: String(20), nullable
-       - role: Enum("patient", "doctor", "hospital_admin", "system_admin")
+       - role: String(20), not null (values: "patient", "doctor", "hospital_admin", "system_admin")
+         Use String instead of PostgreSQL Enum to avoid migration issues when adding roles later
        - is_active: Boolean, default True
-       - created_at, updated_at: DateTime with timezone
+       - created_at: DateTime(timezone=True), server_default=func.now()
+       - updated_at: DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
 
        **Hospital** (models/hospital.py):
        - id: UUID (PK)
-       - name: String(255)
-       - address: Text
-       - city: String(100), indexed
-       - state: String(100)
-       - latitude: Float
-       - longitude: Float
-       - phone: String(20)
-       - email: String(255)
-       - specialties: ARRAY(String) (PostgreSQL array)
+       - name: String(255), not null
+       - address: Text, not null
+       - city: String(100), indexed, not null
+       - state: String(100), not null
+       - latitude: Float, not null
+       - longitude: Float, not null
+       - phone: String(20), nullable
+       - email: String(255), nullable
+       - specialties: ARRAY(String) (PostgreSQL native array)
        - facilities: ARRAY(String)
        - is_active: Boolean, default True
-       - created_at, updated_at
+       - created_at, updated_at (same pattern as User)
 
        **Doctor** (models/doctor.py):
        - id: UUID (PK)
-       - user_id: UUID (FK → users.id)
-       - hospital_id: UUID (FK → hospitals.id)
-       - specialty: String(100), indexed
-       - qualification: String(255)
-       - experience_years: Integer
-       - consultation_fee: Float
+       - user_id: UUID (FK → users.id), not null
+       - hospital_id: UUID (FK → hospitals.id), not null
+       - specialty: String(100), indexed, not null
+       - qualification: String(255), nullable
+       - experience_years: Integer, default 0
+       - consultation_fee: Float, nullable
        - is_available: Boolean, default True
        - created_at, updated_at
 
        **Appointment** (models/appointment.py):
        - id: UUID (PK)
-       - patient_id: UUID (FK → users.id)
-       - doctor_id: UUID (FK → doctors.id)
-       - hospital_id: UUID (FK → hospitals.id)
-       - appointment_date: Date
-       - appointment_time: Time
-       - status: Enum("scheduled", "checked_in", "in_progress", "completed", "cancelled", "no_show")
+       - patient_id: UUID (FK → users.id), not null
+       - doctor_id: UUID (FK → doctors.id), not null
+       - hospital_id: UUID (FK → hospitals.id), not null
+       - appointment_date: Date, not null
+       - appointment_time: Time, not null
+       - status: String(20), default "scheduled"
+         (values: "scheduled", "checked_in", "in_progress", "completed", "cancelled", "no_show")
        - notes: Text, nullable
        - created_at, updated_at
 
        **QueueEntry** (models/queue.py):
        - id: UUID (PK)
-       - appointment_id: UUID (FK → appointments.id, unique)
-       - hospital_id: UUID (FK → hospitals.id)
-       - doctor_id: UUID (FK → doctors.id)
-       - patient_id: UUID (FK → users.id)
-       - token_number: Integer
-       - position: Integer
-       - status: Enum("waiting", "in_progress", "completed", "skipped")
+       - appointment_id: UUID (FK → appointments.id, unique), not null
+       - hospital_id: UUID (FK → hospitals.id), not null
+       - doctor_id: UUID (FK → doctors.id), not null
+       - patient_id: UUID (FK → users.id), not null
+       - token_number: Integer, not null
+       - position: Integer, not null
+       - status: String(20), default "waiting"
+         (values: "waiting", "in_progress", "completed", "skipped")
        - estimated_wait_minutes: Integer, nullable
-       - checked_in_at: DateTime
-       - called_at: DateTime, nullable
-       - completed_at: DateTime, nullable
+       - checked_in_at: DateTime(timezone=True), not null
+       - called_at: DateTime(timezone=True), nullable
+       - completed_at: DateTime(timezone=True), nullable
 
-    4. Update `models/__init__.py` to import all models.
+    4. Update `models/__init__.py` to import all models so Alembic autogenerate detects them.
 
-    AVOID: Using synchronous SQLAlchemy — all database operations must be async
-    AVOID: String-based column types without length limits
+    SCHEMA CORRECTIONS from original plan:
+    - Use String(20) instead of PostgreSQL Enum type for role/status columns.
+      Reason: Enum types require explicit ALTER TYPE migrations when adding values,
+      which breaks additive-only migration strategy. String columns are more flexible.
+    - Ensure all FKs have explicit ondelete behavior (SET NULL or CASCADE as appropriate).
+    - Add index on appointment_date for query performance.
+
+    AVOID: Using PostgreSQL Enum columns — use String with application-level validation
+    AVOID: Any DROP TABLE or destructive operations
     USE: UUID primary keys (not auto-increment integers) for all tables
-    USE: server_default for timestamps, not Python-side defaults
+    USE: server_default=func.now() for timestamps (not Python-side defaults)
+    USE: The existing local medismart_db — do NOT create a new database
   </action>
   <verify>
     cd backend
@@ -116,52 +129,72 @@ Load these files for context:
     - All 5 models import without errors
     - Models have proper relationships and foreign keys
     - Database engine/session utilities are importable
+    - No PostgreSQL Enum types used (String columns instead)
   </done>
 </task>
 
 <task type="auto" effort="medium">
-  <name>Initialize Alembic and create initial migration</name>
+  <name>Initialize Alembic and create initial migration (additive only)</name>
   <files>
     backend/alembic.ini
     backend/alembic/env.py
+    backend/alembic/script.py.mako
     backend/alembic/versions/
   </files>
   <action>
     1. Run: cd backend && alembic init alembic
-    2. Edit alembic.ini: set sqlalchemy.url to empty (will be overridden in env.py)
+    2. Edit alembic.ini:
+       - Set sqlalchemy.url to empty string (overridden in env.py)
     3. Edit alembic/env.py:
        - Import settings from app.core.config
        - Import Base from app.models.base
        - Import all models from app.models (so autogenerate detects them)
-       - Set config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("+asyncpg", ""))
+       - Override sqlalchemy.url using settings.DATABASE_URL:
+         For Alembic (sync): replace "+asyncpg" with "+psycopg2" or use plain "postgresql://"
+         config.set_main_option("sqlalchemy.url",
+             settings.DATABASE_URL.replace("+asyncpg", ""))
        - Set target_metadata = Base.metadata
-    4. Create initial migration: alembic revision --autogenerate -m "initial schema"
+    4. Add psycopg2-binary to requirements.txt (Alembic needs a sync driver)
+    5. Create initial migration:
+       alembic revision --autogenerate -m "create initial tables"
+    6. Review the generated migration to confirm it only contains CREATE TABLE operations
+       and does NOT contain any DROP statements.
+    7. Run the migration: alembic upgrade head
 
-    NOTE: Migration generation requires PostgreSQL to be running.
-    If PostgreSQL is not available, create the migration file manually with the correct schema.
+    CRITICAL: Before running autogenerate, check if tables already exist in medismart_db.
+    If they do, use alembic stamp head instead of upgrade to mark current state
+    without running migration SQL.
 
-    AVOID: Committing alembic.ini with hardcoded database credentials
+    AVOID: DROP TABLE, DROP COLUMN, or any destructive migration operations
+    AVOID: Hardcoding database credentials in alembic.ini
+    AVOID: Using asyncpg driver with Alembic (it requires a sync driver)
+    USE: alembic stamp head if tables already exist (don't recreate)
     USE: Environment variable override in env.py
   </action>
   <verify>
     cd backend
     alembic heads
+    alembic current
   </verify>
   <done>
-    - Alembic initialized with env.py pointing to correct database
-    - Initial migration exists with all 5 tables
+    - Alembic initialized with env.py pointing to medismart_db
+    - Initial migration exists with all 5 tables (CREATE only, no DROP)
     - `alembic heads` shows the migration revision
+    - `alembic current` shows migration is applied
+    - Existing data in medismart_db is preserved
   </done>
 </task>
 
 ## Must-Haves
 After all tasks complete, verify:
 - [ ] 5 SQLAlchemy models defined with proper relationships
-- [ ] Async database session utility works
-- [ ] Alembic configured for migration management
-- [ ] All models use UUID primary keys
+- [ ] Async database session utility works against local medismart_db
+- [ ] Alembic configured — no destructive operations
+- [ ] All models use UUID primary keys and String (not Enum) for status columns
+- [ ] Existing medismart_db data is untouched
 
 ## Success Criteria
 - [ ] All tasks verified passing
 - [ ] Must-haves confirmed
 - [ ] Models and database utilities importable without errors
+- [ ] Tables exist in medismart_db
