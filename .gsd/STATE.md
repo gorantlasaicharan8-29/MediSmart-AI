@@ -5,10 +5,10 @@
 ## Current Position
 
 - **Phase**: 1 — Project Foundation & Architecture
-- **Task**: Plan 1.2 — PostgreSQL Database Schema & Connection (Models created & tested; awaiting local DB password for migration execution)
-- **Status**: Saved & Paused at 2026-10-17 19:54 IST
-- **Completed Plans**: Plan 1.1 (Backend Foundation)
-- **In-Progress Plans**: Plan 1.2 (Models, engine, session, Alembic configured; DB auth pending)
+- **Task**: Ready for Plan 1.3 (Frontend — Tailwind CSS v4, Routing & Layout Shell)
+- **Status**: Active (Resumed 2026-10-18 13:12 IST)
+- **Completed Plans**: Plan 1.1 (Backend Foundation), Plan 1.2 (PostgreSQL Database Schema & Connection)
+- **Next Plan**: Plan 1.3 (Frontend — Tailwind CSS v4, Routing & Layout Shell)
 
 ## Last Session Summary
 
@@ -70,10 +70,6 @@
 - `.gsd/phases/1/3-PLAN.md`: Plan 1.3 (Frontend Tailwind v4 & Layout Shell).
 
 ## Next Steps
-1. User updates `DATABASE_URL` in `backend/.env` with their actual PostgreSQL password.
-2. Run database inspection on `medismart_db` to verify existing tables.
-3. Generate initial Alembic revision (`alembic revision --autogenerate -m "create initial tables"`).
-4. Review generated migration (confirm only CREATE, no DROP).
-5. Apply migration (`alembic upgrade head`).
-6. Verify tables in `medismart_db` and write `2-SUMMARY.md`.
-7. Proceed to Plan 1.3 (Frontend Tailwind v4 and React Router setup).
+1. Execute Plan 1.3: Frontend — Tailwind CSS v4, Routing & Layout Shell (Preserving existing React 19 + Vite 8 setup).
+2. Execute Plan 1.4: Environment Configuration, .gitignore & Database Verification.
+3. Execute Plan 1.5: Basic Tests & Developer Documentation.
