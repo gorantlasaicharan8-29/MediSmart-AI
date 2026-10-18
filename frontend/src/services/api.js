@@ -146,3 +146,82 @@ export async function deleteHospital(id) {
   })
 }
 
+/**
+ * Fetch paginated doctors with optional search and filters.
+ */
+export async function getDoctors(params = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      query.append(key, value)
+    }
+  })
+  const qs = query.toString()
+  return await request(`/api/v1/doctors${qs ? `?${qs}` : ''}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Fetch doctor detail by ID.
+ */
+export async function getDoctorById(id) {
+  return await request(`/api/v1/doctors/${id}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Fetch available consultation slots for a doctor on a specific date.
+ */
+export async function getDoctorSlots(doctorId, date) {
+  return await request(`/api/v1/doctors/${doctorId}/slots?date=${encodeURIComponent(date)}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Book an appointment with concurrency conflict protection.
+ */
+export async function bookAppointment(data) {
+  return await request('/api/v1/appointments', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Get appointments with role-scoped isolation.
+ */
+export async function getMyAppointments(params = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      query.append(key, value)
+    }
+  })
+  const qs = query.toString()
+  return await request(`/api/v1/appointments${qs ? `?${qs}` : ''}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Get single appointment details by ID.
+ */
+export async function getAppointmentById(id) {
+  return await request(`/api/v1/appointments/${id}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Cancel an appointment transactionally.
+ */
+export async function cancelAppointment(id, cancellationReason) {
+  return await request(`/api/v1/appointments/${id}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ cancellation_reason: cancellationReason || null }),
+  })
+}
+

@@ -64,6 +64,11 @@ export default function Navbar() {
             <NavLink to="/doctors" className={navLinkClass}>
               Doctors
             </NavLink>
+            {isAuthenticated && (
+              <NavLink to="/appointments" className={navLinkClass}>
+                Appointments
+              </NavLink>
+            )}
             <NavLink to="/queue" className={navLinkClass}>
               Live Queue
             </NavLink>
@@ -176,6 +181,19 @@ export default function Navbar() {
           >
             Doctors
           </NavLink>
+          {isAuthenticated && (
+            <NavLink
+              to="/appointments"
+              onClick={() => setMobileMenuOpen(false)}
+              className={({ isActive }) =>
+                `block px-3 py-2 rounded-lg text-base font-medium ${
+                  isActive ? 'text-teal-700 bg-teal-50 font-semibold' : 'text-slate-700 hover:bg-slate-50'
+                }`
+              }
+            >
+              My Appointments
+            </NavLink>
+          )}
           <NavLink
             to="/queue"
             onClick={() => setMobileMenuOpen(false)}
