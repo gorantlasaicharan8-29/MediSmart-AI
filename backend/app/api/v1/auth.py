@@ -29,10 +29,16 @@ async def register(
 ):
     """Public registration endpoint. Administrative roles are blocked from self-assignment."""
     # Defense-in-depth: explicitly block administrative self-assignment
-    if payload.role in {"hospital_admin", "system_admin"}:
+    role_clean = payload.role.strip().lower()
+    if role_clean in {"hospital_admin", "system_admin"}:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Administrative roles cannot be self-assigned. Contact your system administrator.",
+        )
+    if role_clean not in {"patient", "doctor"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid role specified. Public registration only allows 'patient' and 'doctor'.",
         )
 
     # Check for duplicate email
@@ -54,7 +60,7 @@ async def register(
         hashed_password=hashed_pwd,
         full_name=payload.full_name,
         phone=payload.phone,
-        role=payload.role,
+        role=role_clean,
         is_active=True,
     )
 

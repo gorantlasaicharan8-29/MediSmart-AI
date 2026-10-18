@@ -12,19 +12,6 @@ class UserRegisterRequest(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     role: str = Field("patient", description="Role: 'patient' or 'doctor'")
 
-    @field_validator("role")
-    @classmethod
-    def validate_public_role(cls, v: str) -> str:
-        role_clean = v.strip().lower()
-        # Security Requirement: Prevent self-assignment of administrative roles
-        if role_clean in {"hospital_admin", "system_admin"}:
-            raise ValueError(
-                "Administrative roles cannot be self-assigned. Contact your system administrator."
-            )
-        if role_clean not in {"patient", "doctor"}:
-            raise ValueError("Role must be 'patient' or 'doctor'.")
-        return role_clean
-
     @field_validator("email")
     @classmethod
     def normalize_email(cls, v: str) -> str:
