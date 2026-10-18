@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.deps import get_current_active_user, require_roles
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.models.user import User
 from app.schemas.auth import (
@@ -120,7 +121,6 @@ async def login(
     summary="Clear authentication session and browser cookie",
 )
 async def logout(response: Response):
-    """Terminates client browser session by clearing the HttpOnly access token cookie."""
     response.delete_cookie(
         key="access_token",
         path="/",
@@ -128,3 +128,52 @@ async def logout(response: Response):
         samesite="lax",
     )
     return {"message": "Session terminated successfully"}
+
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    summary="Get current authenticated user profile",
+)
+async def get_me(
+    current_user: User = Depends(get_current_active_user),
+):
+    """Returns the profile of the currently authenticated active user."""
+    return current_user
+
+
+@router.get(
+    "/patient-test",
+    summary="RBAC endpoint accessible to Patients and System Admins",
+    dependencies=[Depends(require_roles("patient", "system_admin"))],
+)
+async def patient_test(
+    current_user: User = Depends(get_current_active_user),
+):
+    """Restricted to patient and system_admin roles."""
+    return {"message": "Access granted: patient authorized", "user_id": str(current_user.id), "role": current_user.role}
+
+
+@router.get(
+    "/doctor-test",
+    summary="RBAC endpoint accessible to Doctors and System Admins",
+    dependencies=[Depends(require_roles("doctor", "system_admin"))],
+)
+async def doctor_test(
+    current_user: User = Depends(get_current_active_user),
+):
+    """Restricted to doctor and system_admin roles."""
+    return {"message": "Access granted: doctor authorized", "user_id": str(current_user.id), "role": current_user.role}
+
+
+@router.get(
+    "/admin-test",
+    summary="RBAC endpoint accessible to Hospital Admins and System Admins",
+    dependencies=[Depends(require_roles("hospital_admin", "system_admin"))],
+)
+async def admin_test(
+    current_user: User = Depends(get_current_active_user),
+):
+    """Restricted to hospital_admin and system_admin roles."""
+    return {"message": "Access granted: admin authorized", "user_id": str(current_user.id), "role": current_user.role}
+
