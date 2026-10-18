@@ -1,7 +1,7 @@
 import uuid
 from typing import TYPE_CHECKING, List, Optional
-from sqlalchemy import Boolean, Float, ForeignKey, Integer, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
@@ -33,6 +33,19 @@ class Doctor(Base, UUIDMixin, TimestampMixin):
     experience_years: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     consultation_fee: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     is_available: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    credential_status: Mapped[str] = mapped_column(
+        String(50),
+        default="pending_verification",
+        server_default="pending_verification",
+        nullable=False,
+    )
+    bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    available_days: Mapped[List[str]] = mapped_column(
+        ARRAY(String(20)),
+        default=lambda: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        server_default="{'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'}",
+        nullable=False,
+    )
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="doctor")

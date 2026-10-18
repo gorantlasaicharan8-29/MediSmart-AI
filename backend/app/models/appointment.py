@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, time
 from typing import TYPE_CHECKING, Optional
-from sqlalchemy import Date, ForeignKey, String, Text, Time
+from sqlalchemy import Date, ForeignKey, Index, String, Text, Time, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin, UUIDMixin
@@ -17,6 +17,23 @@ class Appointment(Base, UUIDMixin, TimestampMixin):
     """Appointment booking model."""
     __tablename__ = "appointments"
 
+    __table_args__ = (
+        Index(
+            "uq_active_doctor_slot",
+            "doctor_id",
+            "appointment_date",
+            "appointment_time",
+            unique=True,
+            postgresql_where=text("status != 'cancelled'"),
+        ),
+    )
+
+    appointment_token: Mapped[str] = mapped_column(
+        String(50),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
     patient_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -43,6 +60,7 @@ class Appointment(Base, UUIDMixin, TimestampMixin):
         nullable=False,
     )
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    cancellation_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Relationships
     patient: Mapped["User"] = relationship("User", back_populates="appointments")
