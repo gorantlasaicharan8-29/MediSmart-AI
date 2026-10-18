@@ -91,3 +91,58 @@ export async function logoutUser() {
     method: 'POST',
   })
 }
+
+/**
+ * Fetch paginated hospitals with optional search and filters.
+ */
+export async function getHospitals(params = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      query.append(key, value)
+    }
+  })
+  const qs = query.toString()
+  return await request(`/api/v1/hospitals${qs ? `?${qs}` : ''}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Fetch single hospital detail by ID.
+ */
+export async function getHospitalById(id) {
+  return await request(`/api/v1/hospitals/${id}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Create a new hospital facility (Hospital Admin / System Admin).
+ */
+export async function createHospital(data) {
+  return await request('/api/v1/hospitals', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Update hospital details (Hospital Admin / System Admin).
+ */
+export async function updateHospital(id, data) {
+  return await request(`/api/v1/hospitals/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Delete a hospital facility (System Admin only).
+ */
+export async function deleteHospital(id) {
+  return await request(`/api/v1/hospitals/${id}`, {
+    method: 'DELETE',
+  })
+}
+
