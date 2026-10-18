@@ -42,14 +42,16 @@
 **Requirements**: REQ-04 (Patient registration, login, secure role-based access)
 
 ### Phase 3: Hospital Discovery & Interactive Map
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Build the interactive map-based hospital discovery system using OpenStreetMap and Leaflet.
 **Deliverables**:
-- Hospital CRUD API for admins
-- Interactive Leaflet map with hospital markers (real geographic coordinates)
-- Search and filter by location, specialty, facilities, availability
-- Hospital detail pages with doctor listings
-- Synthetic hospital data for real cities (clearly labeled)
+- Additive Alembic migration and Hospital model supporting optional coordinates and data provenance
+- Curated seed script with real metropolitan hospitals (exact OSM coordinates) and sample incomplete facilities
+- Public hospital discovery API with full-text search, city filters, specialty/facility array filtering, and Haversine proximity calculations
+- Backend-enforced RBAC restricting facility creation and updates to `hospital_admin` and `system_admin`, deletion to `system_admin`
+- Interactive React Leaflet (v5) map with custom SVG medical pins, auto-bounds controller, and mandatory OpenStreetMap attribution
+- Responsive split-screen UI with directory cards, filter bar, detail modal, and admin creation modal
+- Comprehensive 13-test automated hospital suite with non-destructive cleanup
 **Requirements**: REQ-01, REQ-02
 
 ### Phase 4: Doctor Discovery & Appointment Booking

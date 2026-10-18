@@ -1,56 +1,58 @@
 # STATE.md — Project Memory
 
-> Last updated: 2026-10-18 14:40 IST
+> Last updated: 2026-10-18 15:25 IST
 
 ## Current Position
 
-- **Phase**: 2 — Authentication & User Management (COMPLETE ✓)
+- **Phase**: 3 — Hospital Discovery & Interactive Map (COMPLETE ✓)
 - **Status**: Verified & Committed
-- **Completed Plans in Phase 2**:
-  - Plan 2.1: Backend Core Auth — Argon2id Hashing, Secure JWTs, Cookie Auth & Endpoints
-  - Plan 2.2: Backend Role-Based Access Control (RBAC) & Administrative Provisioning
-  - Plan 2.3: Frontend Auth State, Connected Pages & Protected Routes
-  - Plan 2.4: Automated Auth Test Suite & Integration Verification
-- **Next Up**: Phase 3 — Hospital Discovery & Interactive Map
+- **Completed Plans in Phase 3**:
+  - Plan 3.1: Data Model Refinements, Additive Alembic Migration & Seed Data
+  - Plan 3.2: Backend Hospital API with Search, Geo-Filtering & Admin RBAC
+  - Plan 3.3: Frontend Interactive Leaflet Map & Hospital Discovery Directory
+  - Plan 3.4: Automated Test Suite & Full Integration Verification
+- **Next Up**: Phase 4 — Doctor Discovery & Appointment Booking
 
-## Phase 2 Verification Summary
+## Phase 3 Verification Summary
 
-- **Security & Integrity**:
-  - Argon2id password hashing implemented (`argon2-cffi`, `m=65536, t=2, p=1, l=32`).
-  - Secure JWTs with 60-minute short TTL, validated claims (`sub`, `role`, `iss`, `iat`, `exp`, `jti`).
-  - Fail-safe `SECRET_KEY` validator enforcing `len(SECRET_KEY) >= 32`.
-  - Generic `401 Unauthorized` responses on login prevents account enumeration.
-  - Safe `409 Conflict` on duplicate email registrations.
-  - Public registration strictly blocks self-assignment of `hospital_admin` and `system_admin` with `403 Forbidden`.
-  - Administrative provisioning CLI utility: `backend/scripts/create_admin.py`.
-  - Dual-transport authentication: HttpOnly `SameSite=Lax` cookies for browser session; Bearer tokens for API/test headers. No long-lived tokens stored in `localStorage`.
+- **Geographic & OpenStreetMap Compliance**:
+  - React Leaflet (v5) + Leaflet (v1.9) with standard OpenStreetMap tile layer and mandatory attribution:
+    `&copy; OpenStreetMap contributors`.
+  - Custom vector SVG medical cross markers styled with MediSmart theme colors.
+  - Data provenance explicitly categorized (`data_source`: `"verified"`, `"imported"`, `"sample"`) and displayed via UI badges.
+- **Resilience to Incomplete Information**:
+  - `latitude` and `longitude` are safely nullable in `Hospital` model and PostgreSQL schema.
+  - Facilities lacking coordinates are safely flagged (`has_coordinates: false`, `⚠️ GPS Pending`) and presented in list view without breaking map queries or rendering.
+- **Backend Architecture & RBAC**:
+  - Discovery endpoints `GET /api/v1/hospitals` and `GET /api/v1/hospitals/{id}` are publicly accessible.
+  - Search (name, address, city), city exact filter, PostgreSQL array filters for specialties and facilities, and Haversine spatial proximity filtering (`lat`, `lng`, `radius_km`).
+  - Creation and editing restricted to `hospital_admin` and `system_admin`.
+  - Deletion restricted to `system_admin`.
 - **Database Status**:
-  - Reused existing PostgreSQL 18.6 `medismart_db`.
+  - Additive Alembic migration applied (`75eb29345f17`).
   - Zero tables dropped or reset; all 5 core tables intact.
-  - 0 leftover test user accounts.
+  - 8 seeded facilities (7 verified with real OSM coordinates, 1 sample facility without coordinates).
+  - 0 leftover test records.
 - **Automated Tests**:
-  - 27/27 pytest tests passing in 2.01s (12 Phase 1 tests + 15 Phase 2 tests).
+  - 40/40 pytest tests passing in 3.32s (12 Phase 1 + 15 Phase 2 + 13 Phase 3).
 - **Frontend Status**:
-  - `oxlint`: 0 errors, 0 warnings across 18 files.
-  - Vite production build: clean build in 253ms.
+  - `oxlint`: 0 errors, 0 warnings across 24 files.
+  - Vite production build: clean build in 601ms.
 
 ## Context Dump
 
 ### Decisions Made
-- Decision 13: Use Argon2id instead of bcrypt for password hashing.
-- Decision 14: Use HttpOnly, SameSite=Lax cookies with dual-transport fallback to Bearer header.
-- Decision 15: Restrict public self-registration to `patient` and `doctor`; provision administrative roles via CLI script or authorized channels.
-- Decision 16: Separate React context definition to maintain Fast Refresh without linter warnings.
-- Decision 17: Configure pytest-asyncio session loop scope for stable asynchronous PostgreSQL tests on Windows.
+- Decision 18: Use custom SVG medical divIcons for Leaflet to prevent bundler 404s and provide high-DPI retina rendering.
+- Decision 19: Allow nullable latitude/longitude to gracefully handle facilities pending GPS surveys without schema corruption.
+- Decision 20: Haversine distance bounding in PostgreSQL using safe clamped `least`/`greatest` bounds to prevent acos domain errors.
 
 ### Files of Interest
-- `backend/app/core/security.py`: Argon2id and JWT signing/validation.
-- `backend/app/core/deps.py`: Dual-transport auth dependencies and `require_roles` RBAC guards.
-- `backend/app/api/v1/auth.py`: Register, Login, Logout, /me, and RBAC test routes.
-- `backend/scripts/create_admin.py`: Safe CLI administrator provisioning tool.
-- `backend/tests/test_auth.py`: Comprehensive 15-test auth suite.
-- `frontend/src/context/AuthContext.jsx`: Session management via HttpOnly cookies.
-- `frontend/src/components/ProtectedRoute.jsx`: Client-side route protection.
+- `backend/app/models/hospital.py`: Hospital model with optional coordinates and source provenance.
+- `backend/app/schemas/hospital.py`: Pydantic validation schemas with computed `has_coordinates`.
+- `backend/app/api/v1/hospitals.py`: Public search, geo-proximity, and admin RBAC endpoints.
+- `frontend/src/components/map/HospitalMap.jsx`: Leaflet OpenStreetMap interactive container with auto-bounds.
+- `frontend/src/components/hospitals/`: Directory cards, filter panel, detail modal, and admin creation modal.
+- `backend/tests/test_hospitals.py`: 13-test automated hospital suite.
 
 ## Next Steps
-1. Discuss / Plan Phase 3: Hospital Discovery & Interactive Map.
+1. Discuss / Plan Phase 4: Doctor Discovery & Appointment Booking.
