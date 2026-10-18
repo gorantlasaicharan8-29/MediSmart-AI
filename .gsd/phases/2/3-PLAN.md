@@ -9,50 +9,67 @@ gap_closure: false
 # Plan 2.3: Frontend Auth State, Connected Pages & Protected Routes
 
 ## Objective
-Connect the existing React 19 Login and Register pages to the FastAPI backend, introduce client-side authentication state management (`AuthContext`), handle duplicate email error feedback cleanly, and implement role-aware protected route wrappers.
+Connect React 19 Login and Register pages to backend endpoints using secure browser authentication (`credentials: 'include'` for HttpOnly cookies, avoiding long-lived tokens in localStorage), provide clear UI feedback for duplicate emails and generic login errors, and enforce client-side protected route guards with role checks.
 
 ## Context
-- `frontend/src/pages/Login.jsx` (existing login mockup)
-- `frontend/src/pages/Register.jsx` (existing register mockup)
-- `frontend/src/components/Navbar.jsx` (navbar with auth links)
-- `frontend/src/services/api.js` (existing API client)
-- `frontend/src/App.jsx` (route definitions)
+- `frontend/src/pages/Login.jsx`
+- `frontend/src/pages/Register.jsx`
+- `frontend/src/components/Navbar.jsx`
+- `frontend/src/services/api.js`
+- `frontend/src/App.jsx`
+
+## Security & Architecture Rules
+1. **Browser Authentication Strategy**:
+   - Prefer `HttpOnly`, `SameSite=Lax` cookies for browser authentication.
+   - All frontend API calls use `credentials: 'include'`.
+   - Avoid storing long-lived JWT access tokens in `localStorage` to eliminate XSS token theft vectors.
+   - On app startup, `AuthContext` calls `GET /api/v1/auth/me` (with `credentials: 'include'`) to restore the session and populate user state.
+2. **Controlled Registration UI**:
+   - `Register.jsx` allows self-registration for `Patient` and `Doctor`.
+   - Administrative roles display an informative callout: *"Hospital Admin and System Admin accounts are provisioned directly by administrative staff."*
+3. **Accurate Logout Behavior**:
+   - Logout calls `POST /api/v1/auth/logout` (server clears the `HttpOnly` cookie), resets React state, and navigates to `/login`.
+   - Accurately communicated as session termination and cookie clearing.
+4. **Preserved Design & Assets**:
+   - All existing Tailwind v4 styles, warm background palette, components, and layout shells are preserved.
 
 ## Tasks
 
 <task type="auto" effort="medium">
-  <name>Create AuthContext and wire API authentication client</name>
+  <name>Implement API auth client and AuthContext with cookie session verification</name>
   <files>
-    frontend/src/context/AuthContext.jsx
     frontend/src/services/api.js
+    frontend/src/context/AuthContext.jsx
     frontend/src/components/ProtectedRoute.jsx
   </files>
   <action>
     1. Update `frontend/src/services/api.js`:
-       - Add `registerUser(userData)` -> `POST /api/v1/auth/register`
-       - Add `loginUser(credentials)` -> `POST /api/v1/auth/login`
-       - Add `getCurrentUser(token)` -> `GET /api/v1/auth/me` with `Authorization: Bearer <token>`
-       - Add token retrieval helper (`getStoredToken`, `setStoredToken`, `clearStoredToken`).
+       - Configure standard fetch wrapper using `credentials: 'include'`.
+       - `registerUser(payload)`: POST `/api/v1/auth/register`.
+       - `loginUser(payload)`: POST `/api/v1/auth/login`.
+       - `getCurrentUser()`: GET `/api/v1/auth/me`.
+       - `logoutUser()`: POST `/api/v1/auth/logout`.
     2. Create `frontend/src/context/AuthContext.jsx`:
-       - Provides `user`, `token`, `isAuthenticated`, `isLoading`, `login`, `register`, `logout`
-       - On mount, checks for stored token in `localStorage` and validates with `getCurrentUser`
-       - Exports `useAuth` hook for components.
+       - `user`, `isAuthenticated`, `isLoading`, `login`, `register`, `logout`.
+       - `useEffect` on mount queries `getCurrentUser()` with `credentials: 'include'` to restore session if cookie is present.
+       - Clean error handling (if 401, sets `user=null`).
     3. Create `frontend/src/components/ProtectedRoute.jsx`:
-       - Checks `isLoading`; renders subtle loading skeleton while checking token
-       - If not authenticated, redirects to `/login` with `state: { from: location }`
-       - If `allowedRoles` is specified and `user.role` is not in `allowedRoles`, renders access denied message or redirects.
+       - Shows subtle loading state while `isLoading` is true.
+       - If not authenticated, redirects to `/login`.
+       - If `allowedRoles` specified and `user.role` not in `allowedRoles`, renders clean Access Denied message with button to return to authorized area.
   </action>
   <verify>
     npm run build (in frontend/)
   </verify>
   <done>
-    - AuthContext and useAuth created
-    - ProtectedRoute component created
+    - api.js uses credentials: 'include'
+    - AuthContext manages session without long-lived tokens in localStorage
+    - ProtectedRoute enforces client-side route access
   </done>
 </task>
 
 <task type="auto" effort="medium">
-  <name>Connect Login, Register, and Navbar to live auth state</name>
+  <name>Connect Login, Register, and Navbar to live authentication</name>
   <files>
     frontend/src/pages/Login.jsx
     frontend/src/pages/Register.jsx
@@ -60,33 +77,33 @@ Connect the existing React 19 Login and Register pages to the FastAPI backend, i
     frontend/src/App.jsx
   </files>
   <action>
-    1. Update `frontend/src/pages/Register.jsx`:
-       - Connect form submission to `registerUser`
-       - Display clear loading spinner during request
-       - If backend returns 409 Conflict, display: "An account with this email address is already registered. Please sign in or use a different email."
+    1. Update `frontend/src/pages/Login.jsx`:
+       - Wire form to `login(email, password)`.
+       - On 401 error, display generic alert: *"Invalid email or password"*.
+       - On success, redirect to destination.
+    2. Update `frontend/src/pages/Register.jsx`:
+       - Restrict public role selector to `patient` and `doctor`.
+       - On 409 error, display banner: *"An account with this email address already exists. Please sign in or use another email."*
        - On success, redirect to `/login` with success banner.
-    2. Update `frontend/src/pages/Login.jsx`:
-       - Connect form submission to `loginUser`
-       - Display error banner if backend returns 401 Unauthorized ("Invalid email or password")
-       - On success, save token via `AuthContext` and navigate to destination route.
     3. Update `frontend/src/components/Navbar.jsx`:
-       - Use `useAuth`
-       - If authenticated: display user full name, role badge (e.g. `Patient`, `Doctor`), and Sign Out button
-       - If unauthenticated: display existing "Sign In" and "Register" buttons.
+       - Consume `useAuth()`.
+       - If authenticated: show user's name, role badge, and Sign Out button.
+       - If unauthenticated: show Sign In and Register links.
     4. Wrap application in `AuthProvider` in `frontend/src/App.jsx`.
   </action>
   <verify>
     npm run lint && npm run build (in frontend/)
   </verify>
   <done>
-    - Register and Login connected to live backend APIs
-    - Duplicate emails handled safely with clear UI feedback
-    - Navbar updates dynamically based on authentication state
+    - Login and Register live and verified
+    - Duplicate email handling verified
+    - Navbar reflects live auth state
+    - Zero lint warnings and clean build
   </done>
 </task>
 
 ## Must-Haves
-- [ ] Existing Vite 8 + React 19 setup and Tailwind v4 preserved
-- [ ] Duplicate email errors handled gracefully without breaking
-- [ ] Protected routes block unauthorized roles
-- [ ] No secrets stored in Git
+- [ ] HttpOnly cookie transport used without long-lived token storage in localStorage
+- [ ] Safe generic error messages on login
+- [ ] Duplicate email error handled cleanly with 409
+- [ ] Existing UI design, Tailwind v4, and React 19 preserved
