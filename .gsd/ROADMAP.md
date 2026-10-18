@@ -55,14 +55,20 @@
 **Requirements**: REQ-01, REQ-02
 
 ### Phase 4: Doctor Discovery & Appointment Booking
-**Status**: ⬜ Not Started
-**Objective**: Enable patients to find doctors and book, cancel, and review appointments.
+**Status**: ✅ Complete
+**Objective**: Enable patients to find doctors and book, cancel, and review appointments with database-enforced concurrency safety and unique tracking tokens.
 **Deliverables**:
-- Doctor profile API and search/filter endpoints
-- Appointment booking, cancellation, and history APIs
-- Doctor availability calendar (slot-based)
-- Frontend: doctor cards, booking flow, appointment history page
-- Doctor dashboard: view schedule, manage slots
+- PostgreSQL partial unique index `uq_active_doctor_slot` for database-level double-booking concurrency safety
+- Unique appointment tracking token generation (`MS-YYYYMMDD-XXXX`) with bounded retries and PostgreSQL unique constraint
+- Credential provenance tracking distinguishing verified specialists (`verified`), demonstration profiles (`sample`), and pending verification (`pending_verification`)
+- Additive Alembic migration (`42d65b870a44`) with strict pre-checks for status consistency and duplicate active bookings
+- Idempotent seed script (`seed_doctors.py`) provisioning 10 realistic doctors across major hospitals
+- Public doctor discovery API with multi-facet filtering and dynamic 30-min slot calculation
+- Transactional appointment booking API with 409 Conflict handling on slot collision and strict boundary validation
+- Role-scoped appointment listing and detail views with strict patient data isolation (403 Forbidden)
+- Transactional cancellation workflow freeing the partial unique index slot immediately
+- Frontend doctor directory cards, filter bar, interactive slot booking modal, and patient appointment management dashboard
+- Comprehensive automated test suite (14 tests in `test_appointments.py`) with non-destructive cleanup
 **Requirements**: REQ-03, REQ-05
 
 ### Phase 5: Digital Queue & Real-Time Updates
