@@ -18,10 +18,22 @@ class Hospital(Base, UUIDMixin, TimestampMixin):
     address: Mapped[str] = mapped_column(Text, nullable=False)
     city: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     state: Mapped[str] = mapped_column(String(100), nullable=False)
-    latitude: Mapped[float] = mapped_column(Float, nullable=False)
-    longitude: Mapped[float] = mapped_column(Float, nullable=False)
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    
+    # Data provenance and attribution
+    data_source: Mapped[str] = mapped_column(
+        String(50),
+        default="verified",
+        server_default="verified",
+        nullable=False,
+    )
+    source_attribution: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
+    )
     
     # Specialties and facilities stored as PostgreSQL arrays of strings
     specialties: Mapped[List[str]] = mapped_column(
