@@ -1,16 +1,50 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { checkBackendHealth, checkDatabaseHealth } from '../services/api'
 
 export default function Home() {
+  const [healthStatus, setHealthStatus] = useState({
+    backend: 'checking...',
+    database: 'checking...',
+    checked: false,
+  })
+
+  useEffect(() => {
+    async function loadHealth() {
+      const [backend, db] = await Promise.all([
+        checkBackendHealth(),
+        checkDatabaseHealth(),
+      ])
+      setHealthStatus({
+        backend: backend.status === 'ok' ? 'Connected' : 'Offline',
+        database: db.status === 'ok' && db.database === 'connected' ? 'Connected' : 'Offline',
+        checked: true,
+      })
+    }
+    loadHealth()
+  }, [])
+
   return (
     <div className="space-y-16 py-8 md:py-12">
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-7 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-200/80 text-teal-800 text-xs font-semibold tracking-wide">
-              <span className="w-2 h-2 rounded-full bg-teal-600"></span>
-              Modern Healthcare Operations Platform
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-200/80 text-teal-800 text-xs font-semibold tracking-wide">
+                <span className="w-2 h-2 rounded-full bg-teal-600"></span>
+                Modern Healthcare Operations Platform
+              </div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    healthStatus.database === 'Connected' ? 'bg-emerald-500' : 'bg-amber-500'
+                  }`}
+                ></span>
+                <span>
+                  Backend: {healthStatus.backend} • DB: {healthStatus.database}
+                </span>
+              </div>
             </div>
 
             <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-[1.15]">
@@ -109,8 +143,10 @@ export default function Home() {
                   <span className="font-medium text-slate-900">Room 304</span>
                 </div>
                 <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
-                  <span className="text-slate-600">PostgreSQL Schema State</span>
-                  <span className="font-medium text-emerald-600">5 Tables Migrated</span>
+                  <span className="text-slate-600">PostgreSQL medismart_db</span>
+                  <span className={`font-medium ${healthStatus.database === 'Connected' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    {healthStatus.database === 'Connected' ? 'Connected (5 Tables Active)' : 'Connecting...'}
+                  </span>
                 </div>
               </div>
 
