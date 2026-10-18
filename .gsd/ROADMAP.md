@@ -28,13 +28,17 @@
 **Requirements**: Foundation for all subsequent phases
 
 ### Phase 2: Authentication & User Management
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Implement secure user registration, login, and role-based access control for all four user roles.
 **Deliverables**:
-- User registration and login API (JWT + bcrypt)
-- Role-based middleware (patient, doctor, hospital_admin, system_admin)
-- Frontend auth pages (register, login, protected routes)
-- User profile management
+- User registration and login API with Argon2id password hashing and secure JWTs (60-min TTL)
+- Dual-transport authentication via HttpOnly cookies and Bearer headers
+- Backend RBAC dependencies (`require_roles`) enforcing access for Patient, Doctor, Hospital Admin, and System Admin
+- Public registration restriction blocking administrative self-assignment with 403 Forbidden
+- Administrative provisioning CLI utility (`create_admin.py`)
+- Frontend auth state management (AuthContext) without long-lived tokens in localStorage
+- Connected Login, Register, and Navbar components with role badges and ProtectedRoute guards
+- Comprehensive automated test suite (15 tests) with non-destructive cleanup
 **Requirements**: REQ-04 (Patient registration, login, secure role-based access)
 
 ### Phase 3: Hospital Discovery & Interactive Map

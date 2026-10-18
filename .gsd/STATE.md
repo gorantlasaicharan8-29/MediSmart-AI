@@ -1,79 +1,56 @@
 # STATE.md — Project Memory
 
-> Last updated: 2026-10-17 19:54 IST
+> Last updated: 2026-10-18 14:40 IST
 
 ## Current Position
 
-- **Phase**: 1 — Project Foundation & Architecture (COMPLETE ✓)
-- **Status**: Verified & Ready for Review
-- **Completed Plans**:
-  - Plan 1.1: Backend Foundation (FastAPI + Project Structure + Health Check)
-  - Plan 1.2: PostgreSQL Database Schema & Connection (Local DB, 5 Tables Migrated)
-  - Plan 1.3: Frontend — Tailwind CSS v4, Routing & Layout Shell (React 19 + Vite 8)
-  - Plan 1.4: Environment Configuration, .gitignore & Database Verification
-  - Plan 1.5: Basic Tests & Developer Documentation (12/12 pytest tests passed, README created)
-- **Next Up**: Phase 2 — Authentication & User Management (Waiting for user review)
+- **Phase**: 2 — Authentication & User Management (COMPLETE ✓)
+- **Status**: Verified & Committed
+- **Completed Plans in Phase 2**:
+  - Plan 2.1: Backend Core Auth — Argon2id Hashing, Secure JWTs, Cookie Auth & Endpoints
+  - Plan 2.2: Backend Role-Based Access Control (RBAC) & Administrative Provisioning
+  - Plan 2.3: Frontend Auth State, Connected Pages & Protected Routes
+  - Plan 2.4: Automated Auth Test Suite & Integration Verification
+- **Next Up**: Phase 3 — Hospital Discovery & Interactive Map
 
-## Last Session Summary
+## Phase 2 Verification Summary
 
-- **Project Planning & Realignment**:
-  - Realigned all Phase 1 plans with user requirements (reusing local PostgreSQL 18.6 `medismart_db`, eliminating Docker Compose requirement, preserving existing React 19 + Vite 8 frontend, using `String(20)` instead of Enum for roles/statuses to ensure additive migrations).
-  - Created root `.gitignore` protecting `.env` and Python/Node artifacts.
-- **Plan 1.1 Completed & Verified**:
-  - Scaffolded FastAPI app structure (`backend/app/main.py`, `backend/app/core/config.py`, `backend/app/api/v1/health.py`).
-  - Added `/api/v1/health` and `/api/v1/health/db` endpoints.
-  - Initialized Python 3.13 `.venv` and installed all dependencies (`fastapi`, `uvicorn`, `sqlalchemy[asyncio]`, `greenlet`, `asyncpg`, `psycopg2-binary`, `alembic`, `pydantic-settings`, `pytest`).
-  - Verified endpoints live via uvicorn (Root 200, Docs 200, Health 200).
-  - Documented in `backend/.gsd/phases/1/1-SUMMARY.md` and committed in git (`ef587c6`, `ac2642f`).
-- **Plan 1.2 Implemented & Committed**:
-  - Created `backend/app/core/database.py` with async engine and `get_db()` session generator.
-  - Created `backend/app/models/base.py` with `UUIDMixin` and `TimestampMixin`.
-  - Implemented all 5 core models: `User`, `Hospital`, `Doctor`, `Appointment`, `QueueEntry` with proper UUID PKs, relationships, cascading constraints, and native PostgreSQL types.
-  - Verified model imports and table resolution.
-  - Initialized and configured Alembic (`backend/alembic.ini`, `backend/alembic/env.py`) using dynamic connection from `DATABASE_URL` with sync `psycopg2` driver and `Base.metadata`.
-  - Tested database connection against local PostgreSQL 18.6: service is running on 5432, failed authentication with placeholder password `postgres`.
-  - Adhered to safety requirement: stopped at auth check without guessing passwords or modifying existing data.
-  - Committed code in git (`90a9999`).
-
-## In-Progress Work
-
-- **Files created/modified**:
-  - `backend/app/core/database.py`
-  - `backend/app/models/base.py`
-  - `backend/app/models/user.py`
-  - `backend/app/models/hospital.py`
-  - `backend/app/models/doctor.py`
-  - `backend/app/models/appointment.py`
-  - `backend/app/models/queue.py`
-  - `backend/app/models/__init__.py`
-  - `backend/alembic.ini`
-  - `backend/alembic/env.py`
-- **Tests status**:
-  - Model definitions & imports: PASS
-  - App & health endpoints: PASS
-  - Database connectivity test: Awaiting actual password in `backend/.env`
-
-## Blockers
-
-- PostgreSQL `medismart_db` connection requires the user's local password for user `postgres` in `backend/.env`.
+- **Security & Integrity**:
+  - Argon2id password hashing implemented (`argon2-cffi`, `m=65536, t=2, p=1, l=32`).
+  - Secure JWTs with 60-minute short TTL, validated claims (`sub`, `role`, `iss`, `iat`, `exp`, `jti`).
+  - Fail-safe `SECRET_KEY` validator enforcing `len(SECRET_KEY) >= 32`.
+  - Generic `401 Unauthorized` responses on login prevents account enumeration.
+  - Safe `409 Conflict` on duplicate email registrations.
+  - Public registration strictly blocks self-assignment of `hospital_admin` and `system_admin` with `403 Forbidden`.
+  - Administrative provisioning CLI utility: `backend/scripts/create_admin.py`.
+  - Dual-transport authentication: HttpOnly `SameSite=Lax` cookies for browser session; Bearer tokens for API/test headers. No long-lived tokens stored in `localStorage`.
+- **Database Status**:
+  - Reused existing PostgreSQL 18.6 `medismart_db`.
+  - Zero tables dropped or reset; all 5 core tables intact.
+  - 0 leftover test user accounts.
+- **Automated Tests**:
+  - 27/27 pytest tests passing in 2.01s (12 Phase 1 tests + 15 Phase 2 tests).
+- **Frontend Status**:
+  - `oxlint`: 0 errors, 0 warnings across 18 files.
+  - Vite production build: clean build in 253ms.
 
 ## Context Dump
 
 ### Decisions Made
-- Decision 9: Use existing local PostgreSQL 18.6 with `medismart_db` instead of Docker Compose.
-- Decision 10: Additive-only migrations with String types instead of Enum for roles and statuses.
-- Decision 11: Preserve existing Vite 8 + React 19 frontend setup and add Tailwind CSS v4 via `@tailwindcss/vite`.
-- Decision 12: Stop execution before applying migrations if DB credentials fail; never guess passwords.
+- Decision 13: Use Argon2id instead of bcrypt for password hashing.
+- Decision 14: Use HttpOnly, SameSite=Lax cookies with dual-transport fallback to Bearer header.
+- Decision 15: Restrict public self-registration to `patient` and `doctor`; provision administrative roles via CLI script or authorized channels.
+- Decision 16: Separate React context definition to maintain Fast Refresh without linter warnings.
+- Decision 17: Configure pytest-asyncio session loop scope for stable asynchronous PostgreSQL tests on Windows.
 
 ### Files of Interest
-- `backend/.env`: Local credentials file (gitignored). Needs user's actual password in `DATABASE_URL`.
-- `backend/app/core/database.py`: Async engine and session factory.
-- `backend/app/models/`: Contains all 5 core entity models.
-- `backend/alembic/env.py`: Alembic configuration reading `settings.DATABASE_URL`.
-- `.gsd/phases/1/2-PLAN.md`: Full Plan 1.2 tasks.
-- `.gsd/phases/1/3-PLAN.md`: Plan 1.3 (Frontend Tailwind v4 & Layout Shell).
+- `backend/app/core/security.py`: Argon2id and JWT signing/validation.
+- `backend/app/core/deps.py`: Dual-transport auth dependencies and `require_roles` RBAC guards.
+- `backend/app/api/v1/auth.py`: Register, Login, Logout, /me, and RBAC test routes.
+- `backend/scripts/create_admin.py`: Safe CLI administrator provisioning tool.
+- `backend/tests/test_auth.py`: Comprehensive 15-test auth suite.
+- `frontend/src/context/AuthContext.jsx`: Session management via HttpOnly cookies.
+- `frontend/src/components/ProtectedRoute.jsx`: Client-side route protection.
 
 ## Next Steps
-1. Execute Plan 1.3: Frontend — Tailwind CSS v4, Routing & Layout Shell (Preserving existing React 19 + Vite 8 setup).
-2. Execute Plan 1.4: Environment Configuration, .gitignore & Database Verification.
-3. Execute Plan 1.5: Basic Tests & Developer Documentation.
+1. Discuss / Plan Phase 3: Hospital Discovery & Interactive Map.
