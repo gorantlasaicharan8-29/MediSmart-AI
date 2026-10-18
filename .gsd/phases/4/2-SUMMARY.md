@@ -1,0 +1,32 @@
+# Plan 4.2: Backend Doctor & Appointment APIs with Slot Validation, Concurrency Safety & RBAC — Summary
+
+## Accomplishments
+- **Pydantic Schemas (`backend/app/schemas/doctor.py` and `backend/app/schemas/appointment.py`)**:
+  - Implemented `DoctorResponse`, `DoctorListResponse`, `DoctorSlot`, and `DoctorSlotsDayResponse` including `credential_status`, `available_days`, and nested user/hospital summaries.
+  - Implemented `AppointmentCreate`, `AppointmentCancelRequest`, `AppointmentResponse`, and `AppointmentListResponse` with format validation for times (`HH:MM`) and notes.
+- **Doctor Discovery & Slot Availability APIs (`backend/app/api/v1/doctors.py`)**:
+  - `GET /api/v1/doctors`: Multi-parameter search by doctor name, specialty, hospital ID, city, credential status, and availability toggle with pagination.
+  - `GET /api/v1/doctors/{doctor_id}`: Comprehensive doctor profile with hospital affiliation and credentials.
+  - `GET /api/v1/doctors/{doctor_id}/slots`: Dynamically calculates available 30-minute consultation slots (09:00 - 17:00, lunch 13:00 - 14:00 excluded) based on working days and active bookings, rejecting past dates with 400 Bad Request.
+- **Transactional Appointment Booking & Concurrency Conflict Protection (`backend/app/api/v1/appointments.py`)**:
+  - `POST /api/v1/appointments`:
+    - Strict boundary checks: Rejects past dates and non-conforming slot times with 400 Bad Request.
+    - Validates doctor availability on selected day of the week.
+    - Generates unique tracking token (`MS-YYYYMMDD-XXXX`) with bounded collision retries (up to 5 attempts).
+    - Concurrency-safe: Database partial unique index `uq_active_doctor_slot` catches concurrent bookings and translates to **`409 Conflict`** (*"This appointment time slot is already booked. Please choose another slot."*).
+    - Prevents raw database exceptions from being exposed to clients.
+- **Strict Patient Data Isolation & Role-Based Access Control**:
+  - `GET /api/v1/appointments`: Scoped by user role (patients see only their own bookings; doctors see their roster; administrators see all).
+  - `GET /api/v1/appointments/{id}`: Rejects cross-patient snooping with **`403 Forbidden`**.
+- **Transactional Cancellation Workflow**:
+  - `POST /api/v1/appointments/{id}/cancel`:
+    - Uses pessimistic row lock (`with_for_update()`) to prevent race conditions during cancellation.
+    - Enforces ownership (only the booking patient, assigned doctor, or administrator can cancel).
+    - Validates status transition (only `scheduled` -> `cancelled` allowed).
+    - Updating status to `cancelled` immediately frees the PostgreSQL partial unique index slot for other patients.
+    - Strictly blocks patients from mutating status to `completed` or `in_progress`.
+- **Router Integration**:
+  - Mounted `doctors_router` and `appointments_router` cleanly in `backend/app/api/v1/__init__.py`.
+  - Confirmed all 18 OpenAPI endpoints active.
+- **Regression Verification**:
+  - 40/40 pytest tests passing in 3.56s.
