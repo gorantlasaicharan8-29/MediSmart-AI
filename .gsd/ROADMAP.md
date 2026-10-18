@@ -17,7 +17,7 @@
 ## Phases
 
 ### Phase 1: Project Foundation & Architecture
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Establish the full-stack project skeleton — backend (FastAPI + PostgreSQL), frontend (React + Vite + Tailwind CSS), database schema, and dev tooling. Both servers run locally and communicate via API.
 **Deliverables**:
 - FastAPI backend with project structure, CORS, health & DB connectivity endpoints
