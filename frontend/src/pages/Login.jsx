@@ -1,19 +1,41 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../context/useAuth'
 
 export default function Login() {
-  const [selectedRole, setSelectedRole] = useState('patient')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [errorMessage, setErrorMessage] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const roles = [
-    { id: 'patient', label: 'Patient' },
-    { id: 'doctor', label: 'Doctor' },
-    { id: 'hospital_admin', label: 'Hospital Admin' },
-    { id: 'system_admin', label: 'System Admin' },
-  ]
+  const { login } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
 
-  const handleSubmit = (e) => {
+  // Notification from previous redirects (e.g. registration success)
+  const successMessage = location.state?.message
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    alert('Authentication APIs will be connected in Phase 2 (Authentication & User Management).')
+    setErrorMessage(null)
+    setIsSubmitting(true)
+
+    try {
+      await login({ email: email.trim(), password })
+      // Navigate to intended page or home
+      const destination = location.state?.from?.pathname || '/'
+      navigate(destination, { replace: true })
+    } catch (err) {
+      if (err.status === 401) {
+        setErrorMessage('Invalid email or password. Please check your credentials and try again.')
+      } else if (err.status === 403) {
+        setErrorMessage('This account is inactive or suspended. Please contact support.')
+      } else {
+        setErrorMessage(err.message || 'An unexpected error occurred during sign in. Please try again.')
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -25,27 +47,25 @@ export default function Login() {
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Sign In to MediSmart</h1>
           <p className="text-xs text-slate-500">
-            Select your account role and enter your credentials
+            Enter your credentials to access your clinical dashboard
           </p>
         </div>
 
-        {/* Role Selector Tabs */}
-        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl">
-          {roles.map((role) => (
-            <button
-              key={role.id}
-              type="button"
-              onClick={() => setSelectedRole(role.id)}
-              className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-                selectedRole === role.id
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {role.label}
-            </button>
-          ))}
-        </div>
+        {/* Success Banner */}
+        {successMessage && (
+          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2.5">
+            <span className="font-bold text-emerald-600">✓</span>
+            <span>{successMessage}</span>
+          </div>
+        )}
+
+        {/* Error Banner */}
+        {errorMessage && (
+          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2.5">
+            <span className="font-bold text-rose-600">⚠️</span>
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -55,6 +75,8 @@ export default function Login() {
             <input
               type="email"
               required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 bg-white"
             />
@@ -72,6 +94,8 @@ export default function Login() {
             <input
               type="password"
               required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 bg-white"
             />
@@ -79,14 +103,22 @@ export default function Login() {
 
           <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-500 flex items-center gap-2">
             <span className="text-teal-600 font-bold">ℹ</span>
-            <span>Signing in as <strong className="text-slate-800">{roles.find(r => r.id === selectedRole)?.label}</strong></span>
+            <span>Role permissions (Patient, Doctor, Admin) are automatically verified by backend RBAC.</span>
           </div>
 
           <button
             type="submit"
-            className="w-full py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors shadow-sm"
+            disabled={isSubmitting}
+            className="w-full py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white text-sm font-semibold transition-colors shadow-sm flex items-center justify-center gap-2"
           >
-            Sign In
+            {isSubmitting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Signing in...</span>
+              </>
+            ) : (
+              'Sign In'
+            )}
           </button>
         </form>
 

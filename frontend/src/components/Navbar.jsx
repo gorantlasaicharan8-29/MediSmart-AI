@@ -1,8 +1,16 @@
 import React, { useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/useAuth'
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { user, isAuthenticated, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+  }
 
   const navLinkClass = ({ isActive }) =>
     `text-sm font-medium transition-colors px-3 py-1.5 rounded-lg ${
@@ -10,6 +18,19 @@ export default function Navbar() {
         ? 'text-teal-700 bg-teal-50/80 font-semibold'
         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
     }`
+
+  const getRoleBadge = (role) => {
+    switch (role) {
+      case 'doctor':
+        return 'bg-blue-50 text-blue-700 border-blue-200'
+      case 'hospital_admin':
+        return 'bg-purple-50 text-purple-700 border-purple-200'
+      case 'system_admin':
+        return 'bg-rose-50 text-rose-700 border-rose-200'
+      default:
+        return 'bg-teal-50 text-teal-700 border-teal-200'
+    }
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
@@ -48,20 +69,52 @@ export default function Navbar() {
             </NavLink>
           </nav>
 
-          {/* Auth Actions (Frontend Shell) */}
-          <div className="hidden md:flex items-center gap-2.5">
-            <Link
-              to="/login"
-              className="text-sm font-medium text-slate-700 hover:text-slate-900 px-3.5 py-2 rounded-lg hover:bg-slate-100 transition-colors"
-            >
-              Sign In
-            </Link>
-            <Link
-              to="/register"
-              className="text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 px-4 py-2 rounded-lg shadow-sm hover:shadow transition-all"
-            >
-              Register
-            </Link>
+          {/* Auth Actions (Live Auth State) */}
+          <div className="hidden md:flex items-center gap-3">
+            {isAuthenticated ? (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 text-xs font-bold">
+                    {user?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs font-semibold text-slate-900 leading-tight">
+                      {user?.full_name}
+                    </span>
+                    <span
+                      className={`text-[10px] font-medium px-1.5 py-0.2 rounded border w-fit capitalize leading-none mt-0.5 ${getRoleBadge(
+                        user?.role
+                      )}`}
+                    >
+                      {user?.role?.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-xs font-semibold text-slate-600 hover:text-rose-600 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-rose-200 hover:bg-rose-50 transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="text-sm font-medium text-slate-700 hover:text-slate-900 px-3.5 py-2 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 px-4 py-2 rounded-lg shadow-sm hover:shadow transition-all"
+                >
+                  Register
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -134,21 +187,48 @@ export default function Navbar() {
           >
             Live Queue
           </NavLink>
-          <div className="pt-3 border-t border-slate-100 flex gap-2">
-            <Link
-              to="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex-1 text-center py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg"
-            >
-              Sign In
-            </Link>
-            <Link
-              to="/register"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex-1 text-center py-2 text-sm font-medium text-white bg-teal-600 rounded-lg"
-            >
-              Register
-            </Link>
+
+          <div className="pt-3 border-t border-slate-100">
+            {isAuthenticated ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 px-1">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 text-xs font-bold">
+                    {user?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-slate-900">{user?.full_name}</div>
+                    <div className="text-xs text-slate-500 capitalize">{user?.role?.replace('_', ' ')}</div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false)
+                    handleLogout()
+                  }}
+                  className="w-full text-center py-2 text-sm font-semibold text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100 transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 text-center py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 text-center py-2 text-sm font-medium text-white bg-teal-600 rounded-lg"
+                >
+                  Register
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}
