@@ -5,11 +5,11 @@
 ## Current Position
 
 - **Phase**: 5 — Digital Queue & Real-Time Updates (Plans 5.1 & 5.2 COMPLETE ✓)
-- **Status**: Plan 5.2 Implemented, Verified (85/85 tests passing); Ready for Review
+- **Status**: Plan 5.2 Implemented, Audited & Corrected (93/93 tests passing); Ready for Plan 5.3 Authorization
 - **Completed Plans in Phase 5**:
   - Plan 5.1: Queue Models, Additive Migration (52a1b9e8c4d1), Constraints & Concurrency Safeguards
-  - Plan 5.2: Real-Time Queue Engine & Concurrency-Safe Daily Token Allocation APIs
-- **Next Up**: Plan 5.3 — Patient Live Queue Tracker & Public Monitor Frontend
+  - Plan 5.2: Real-Time Queue Engine, Token Allocation APIs, WebSocket & Security Audit Corrections (F-01 to F-04)
+- **Next Up**: Plan 5.3 — Patient Live Queue Tracker & Public Monitor Frontend (awaiting authorization)
 
 ## Phase 4 Verification Summary
 
