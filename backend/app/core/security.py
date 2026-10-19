@@ -35,6 +35,7 @@ def create_access_token(
     user_id: Union[uuid.UUID, str],
     role: str,
     expires_delta: Optional[timedelta] = None,
+    hospital_id: Optional[Union[uuid.UUID, str]] = None,
 ) -> str:
     """Creates a securely signed JWT access token with validated claims."""
     now = datetime.now(timezone.utc)
@@ -51,6 +52,8 @@ def create_access_token(
         "exp": int(expire.timestamp()),
         "jti": str(uuid.uuid4()),
     }
+    if hospital_id:
+        payload["hospital_id"] = str(hospital_id)
 
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 

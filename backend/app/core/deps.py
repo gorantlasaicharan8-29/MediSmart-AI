@@ -75,6 +75,17 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
 
+    # Attach scoped hospital_id strictly from cryptographically verified JWT claims
+    # Client-supplied headers (e.g. X-Hospital-Id) are never trusted for authorization
+    hosp_claim = payload.get("hospital_id")
+    if hosp_claim:
+        try:
+            user.hospital_id = UUID(str(hosp_claim))
+        except (ValueError, TypeError):
+            user.hospital_id = None
+    else:
+        user.hospital_id = None
+
     return user
 
 

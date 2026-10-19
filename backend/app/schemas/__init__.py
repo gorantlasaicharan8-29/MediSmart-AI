@@ -27,6 +27,15 @@ from app.schemas.appointment import (
     AppointmentResponse,
     AppointmentListResponse,
 )
+from app.schemas.queue import (
+    QueueCheckInRequest,
+    QueueActionRequest,
+    QueuePublicItem,
+    QueuePublicBoardResponse,
+    QueueEntryResponse,
+    DoctorQueueItemResponse,
+    DoctorQueueResponse,
+)
 
 __all__ = [
     "UserRegisterRequest",
@@ -49,4 +58,11 @@ __all__ = [
     "AppointmentCancelRequest",
     "AppointmentResponse",
     "AppointmentListResponse",
+    "QueueCheckInRequest",
+    "QueueActionRequest",
+    "QueuePublicItem",
+    "QueuePublicBoardResponse",
+    "QueueEntryResponse",
+    "DoctorQueueItemResponse",
+    "DoctorQueueResponse",
 ]

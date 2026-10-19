@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime, time, timedelta
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import delete, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import AsyncSessionLocal
@@ -23,8 +23,10 @@ async def cleanup_test_appointment_data():
         # Delete appointments created for test users or test doctors
         await session.execute(
             delete(Appointment).where(
-                Appointment.appointment_token.like("test_appt_%")
-                | Appointment.appointment_token.like("MS-%")
+                or_(
+                    Appointment.appointment_token.like("test_appt_%"),
+                    Appointment.appointment_token.like("MS-%"),
+                )
             )
         )
         # Delete test doctors

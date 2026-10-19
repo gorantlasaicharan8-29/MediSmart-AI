@@ -311,10 +311,11 @@ async def cancel_appointment(
     - Patients cannot mark appointments as completed.
     - Updating status to 'cancelled' immediately frees the PostgreSQL partial unique index slot.
     """
-    # Acquire pessimistic row lock
+    # Acquire pessimistic row lock with queue_entry relationship
     query = (
         select(Appointment)
         .where(Appointment.id == appointment_id)
+        .options(selectinload(Appointment.queue_entry))
         .with_for_update()
     )
     result = await db.execute(query)
@@ -343,12 +344,31 @@ async def cancel_appointment(
             detail="Access denied: You can only cancel your own appointments",
         )
 
-    # Allowed status transition check
-    if appointment.status != "scheduled":
+    # Hospital admin scoping check (fail closed if not affiliated)
+    if current_user.role == "hospital_admin":
+        admin_hosp = getattr(current_user, "hospital_id", None)
+        if not admin_hosp or appointment.hospital_id != admin_hosp:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Hospital admin can only cancel appointments for their authorized hospital",
+            )
+
+    # Allowed status transition check (scheduled or checked_in)
+    if appointment.status not in ("scheduled", "checked_in"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot cancel an appointment that is already {appointment.status}",
         )
+
+    # If checked in, ensure queue entry is not in active consultation or completed
+    if appointment.queue_entry:
+        if appointment.queue_entry.status in ("in_consultation", "completed"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot cancel a consultation that is already in progress or completed",
+            )
+        appointment.queue_entry.status = "cancelled"
+        appointment.queue_entry.position = 0
 
     reason = data.cancellation_reason if data and data.cancellation_reason else "Cancelled by patient"
     appointment.status = "cancelled"
