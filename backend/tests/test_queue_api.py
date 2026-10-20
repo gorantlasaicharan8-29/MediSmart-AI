@@ -75,6 +75,7 @@ async def create_test_user(role: str = "patient", hospital_id: uuid.UUID = None)
             hashed_password="$argon2id$v=19$m=65536,t=2,p=1$fakehashfakehashfakehashfakehash",
             full_name=f"Test {role.title()} {uuid.uuid4().hex[:4]}",
             role=role,
+            hospital_id=hospital_id,
             is_active=True,
         )
         session.add(user)

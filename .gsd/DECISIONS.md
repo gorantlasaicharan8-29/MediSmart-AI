@@ -15,3 +15,10 @@
 | 9 | 2026-10-17 | Use local PostgreSQL 18.6 (medismart_db) | User installed locally; Docker Compose dependency removed for now | Accepted |
 | 10 | 2026-10-17 | Additive-only migrations with String types | Preserves existing database data; avoids PostgreSQL ENUM migration locks | Accepted |
 | 11 | 2026-10-17 | Preserve existing Vite 8 + React 19 frontend | Extend vite.config.js with @tailwindcss/vite; no file re-generation | Accepted |
+| 29 | 2026-10-20 | Exclude clinical notes from QueueEntryResponse | Eliminates privacy leak in GET /api/v1/queue/my and check-in; retains clinical notes strictly for authorized doctors | Accepted |
+| 30 | 2026-10-20 | Additive persistent users.hospital_id affiliation | Sourced authoritatively from PostgreSQL; eliminates header spoofing and stale JWT claims; fails closed | Accepted |
+| 31 | 2026-10-20 | Test database isolation via medismart_test_db | Hard security assertion in conftest.py prevents pytest from ever mutating development medismart_db | Accepted |
+| 32 | 2026-10-20 | Chronological validation-driven ML pipeline with NonNegativeRegressor wrapper | Prevents temporal lookahead bias; selects winning XGBoost regressor strictly on validation set; guarantees >= 0.0 min wait predictions | Accepted |
+| 33 | 2026-10-20 | Imbalanced no-show classification with PR-AUC selection & ThresholdClassifier wrapper | Prioritizes PR-AUC and F1 over deceptive raw accuracy under 23% prevalence; wraps Logistic Regression with validation-calibrated decision threshold | Accepted |
+| 34 | 2026-10-20 | Centralized in-memory ML prediction service with Pydantic validation & synthetic disclosure | Avoids repeated disk I/O via thread-safe cached pipelines; guarantees finite non-negative wait times and bounded probabilities; labels risk bands as illustrative; zero DB access | Accepted |
+

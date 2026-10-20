@@ -72,15 +72,28 @@
 **Requirements**: REQ-03, REQ-05
 
 ### Phase 5: Digital Queue & Real-Time Updates
-**Status**: ⬜ Not Started
+**Status**: 🟢 Completed ✓
 **Objective**: Implement the digital queue system with token generation and live WebSocket updates.
 **Deliverables**:
-- Queue token generation on appointment check-in
-- WebSocket server for real-time queue position broadcast
-- Queue board UI (patients see their position, estimated wait)
-- Doctor queue panel (call next, skip, mark complete)
-- Hospital admin queue configuration (max queue size, hours)
+- Queue token generation on appointment check-in (Plan 5.1 & 5.2 ✓)
+- WebSocket server for real-time queue position broadcast (Plan 5.2 ✓)
+- Queue board UI & Waiting Room Monitor (Plan 5.3 ✓)
+- Patient live queue tracker with turn alerts & dual-transport fallback (Plan 5.3 ✓)
+- Doctor queue console (call next, skip, recall, mark complete) (Plan 5.4 ✓)
+- Hospital admin queue supervision & RBAC isolation (Plan 5.2 & 5.4 ✓)
 **Requirements**: REQ-06, REQ-07
+
+### Phase 5.5: Security & Data-Integrity Remediation
+**Status**: 🟢 Completed ✓
+**Objective**: Remediate findings from Phase 5 security audit regarding clinical note privacy, persistent hospital-admin affiliation, database-level authorization validation, and test database isolation.
+**Deliverables**:
+- Removed clinical notes from `QueueEntryResponse` (GET `/api/v1/queue/my` and check-in)
+- Additive migration `63b2c1f9d5e2` adding persistent `users.hospital_id` with foreign key and index
+- Authoritative database validation in `deps.get_current_user` (never trust client headers or stale JWT claims)
+- Immediate fail-closed authorization revocation when affiliation is removed
+- Strict test database isolation guard in `backend/tests/conftest.py` targeting `medismart_test_db`
+- 12 comprehensive regression tests in `test_remediation_phase5_5.py` (105/105 backend suite passing)
+**Requirements**: Security Audit Remediation
 
 ### Phase 6: ML Predictions (Wait Time & No-Show)
 **Status**: ⬜ Not Started

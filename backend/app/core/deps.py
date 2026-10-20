@@ -75,16 +75,18 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
 
-    # Attach scoped hospital_id strictly from cryptographically verified JWT claims
-    # Client-supplied headers (e.g. X-Hospital-Id) are never trusted for authorization
+    # Authoritative database-backed hospital affiliation:
+    # 1. Never trust X-Hospital-Id or other client-controlled headers.
+    # 2. Do not grant access solely because a JWT contains a hospital_id claim.
+    # 3. The user's active affiliation is strictly sourced from user.hospital_id in the database.
+    # 4. If the affiliation is revoked or altered in the database, subsequent requests
+    #    immediately reflect the database state and fail closed.
+    # 5. If a JWT token claims a hospital_id that contradicts the active database affiliation,
+    #    reject with 401 Unauthorized immediately.
     hosp_claim = payload.get("hospital_id")
-    if hosp_claim:
-        try:
-            user.hospital_id = UUID(str(hosp_claim))
-        except (ValueError, TypeError):
-            user.hospital_id = None
-    else:
-        user.hospital_id = None
+    if user.role == "hospital_admin":
+        if hosp_claim and user.hospital_id and str(hosp_claim) != str(user.hospital_id):
+            raise credentials_exception
 
     return user
 

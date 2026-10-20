@@ -225,3 +225,92 @@ export async function cancelAppointment(id, cancellationReason) {
   })
 }
 
+/**
+ * Check in an appointment into the active daily queue.
+ */
+export async function checkInQueue({ appointment_token, appointment_id }) {
+  return await request('/api/v1/queue/check-in', {
+    method: 'POST',
+    body: JSON.stringify({
+      appointment_token: appointment_token || null,
+      appointment_id: appointment_id || null,
+    }),
+  })
+}
+
+/**
+ * Get the current patient's active queue entry with dynamic position and wait time.
+ */
+export async function getMyQueueEntry() {
+  return await request('/api/v1/queue/my', {
+    method: 'GET',
+  })
+}
+
+/**
+ * Get public clinic waiting room board for a specific doctor (zero PII).
+ */
+export async function getDoctorPublicBoard(doctorId) {
+  return await request(`/api/v1/queue/doctor/${doctorId}/public-board`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Cancel a queue entry and its linked appointment.
+ */
+export async function cancelQueueEntry(entryId) {
+  return await request(`/api/v1/queue/${entryId}`, {
+    method: 'DELETE',
+  })
+}
+
+/**
+ * Get full clinical queue for authorized doctor or staff.
+ */
+export async function getDoctorClinicalQueue(doctorId) {
+  return await request(`/api/v1/queue/doctor/${doctorId}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Call a waiting patient into active consultation.
+ */
+export async function callQueuePatient(entryId, notes = null) {
+  return await request(`/api/v1/queue/${entryId}/call`, {
+    method: 'POST',
+    body: JSON.stringify({ notes: notes || null }),
+  })
+}
+
+/**
+ * Mark in-consultation patient as completed with optional clinical notes.
+ */
+export async function completeQueuePatient(entryId, notes = null) {
+  return await request(`/api/v1/queue/${entryId}/complete`, {
+    method: 'POST',
+    body: JSON.stringify({ notes: notes || null }),
+  })
+}
+
+/**
+ * Skip a waiting or in-consultation patient (marked as no-show).
+ */
+export async function skipQueuePatient(entryId, notes = null) {
+  return await request(`/api/v1/queue/${entryId}/skip`, {
+    method: 'POST',
+    body: JSON.stringify({ notes: notes || null }),
+  })
+}
+
+/**
+ * Recall a skipped patient back into the active waiting queue.
+ */
+export async function recallQueuePatient(entryId, notes = null) {
+  return await request(`/api/v1/queue/${entryId}/recall`, {
+    method: 'POST',
+    body: JSON.stringify({ notes: notes || null }),
+  })
+}
+

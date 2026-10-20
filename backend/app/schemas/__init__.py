@@ -37,6 +37,13 @@ from app.schemas.queue import (
     DoctorQueueResponse,
 )
 
+from app.schemas.ml import (
+    WaitingTimePredictionRequest,
+    WaitingTimePredictionResponse,
+    NoShowPredictionRequest,
+    NoShowPredictionResponse,
+)
+
 __all__ = [
     "UserRegisterRequest",
     "UserLoginRequest",
@@ -65,4 +72,8 @@ __all__ = [
     "QueueEntryResponse",
     "DoctorQueueItemResponse",
     "DoctorQueueResponse",
+    "WaitingTimePredictionRequest",
+    "WaitingTimePredictionResponse",
+    "NoShowPredictionRequest",
+    "NoShowPredictionResponse",
 ]

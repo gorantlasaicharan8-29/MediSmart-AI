@@ -11,6 +11,8 @@ import Queue from './pages/Queue'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import NotFound from './pages/NotFound'
+import WaitingRoomMonitor from './components/queue/WaitingRoomMonitor'
+import DoctorQueueConsole from './components/queue/DoctorQueueConsole'
 
 export default function App() {
   return (
@@ -30,10 +32,33 @@ export default function App() {
               }
             />
             <Route path="queue" element={<Queue />} />
+            <Route
+              path="queue/doctor"
+              element={
+                <ProtectedRoute allowedRoles={['doctor', 'hospital_admin', 'system_admin']}>
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <DoctorQueueConsole />
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="queue/doctor/:doctorId"
+              element={
+                <ProtectedRoute allowedRoles={['doctor', 'hospital_admin', 'system_admin']}>
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <DoctorQueueConsole />
+                  </div>
+                </ProtectedRoute>
+              }
+            />
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
             <Route path="*" element={<NotFound />} />
           </Route>
+          {/* Standalone Kiosk/TV Wall Monitor Displays (Zero PII, Fullscreen) */}
+          <Route path="queue/monitor" element={<WaitingRoomMonitor standalone />} />
+          <Route path="queue/monitor/:doctorId" element={<WaitingRoomMonitor standalone />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

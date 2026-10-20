@@ -1,0 +1,89 @@
+{
+  "task": "waiting_time_regression",
+  "target": "actual_wait_minutes",
+  "target_unit": "minutes",
+  "non_negative_guarantee": true,
+  "selected_model": "xgboost",
+  "random_seed": 42,
+  "dataset_provenance": "100% SYNTHETIC (backend/app/ml/data/waiting_time_dataset.csv)",
+  "synthetic_notice": "All metrics reflect performance exclusively on synthetic queue simulation data. These metrics must not be represented as real clinical accuracy.",
+  "trained_at_utc": "2026-10-20T10:58:27.617112+00:00",
+  "splits": {
+    "total_records": 5000,
+    "train": {
+      "count": 3500,
+      "date_start": "2026-01-01",
+      "date_end": "2026-05-07"
+    },
+    "validation": {
+      "count": 750,
+      "date_start": "2026-05-07",
+      "date_end": "2026-06-03"
+    },
+    "test": {
+      "count": 750,
+      "date_start": "2026-06-03",
+      "date_end": "2026-06-29"
+    }
+  },
+  "feature_schema": {
+    "categorical": [
+      "doctor_specialty"
+    ],
+    "numeric": [
+      "doctor_experience_years",
+      "day_of_week",
+      "slot_hour",
+      "slot_minute",
+      "arrival_lead_minutes",
+      "queue_position_at_checkin",
+      "patients_waiting_ahead",
+      "is_doctor_active_consultation",
+      "historical_avg_consultation_minutes"
+    ],
+    "all_features": [
+      "doctor_specialty",
+      "doctor_experience_years",
+      "day_of_week",
+      "slot_hour",
+      "slot_minute",
+      "arrival_lead_minutes",
+      "queue_position_at_checkin",
+      "patients_waiting_ahead",
+      "is_doctor_active_consultation",
+      "historical_avg_consultation_minutes"
+    ]
+  },
+  "validation_comparison": {
+    "mean_baseline": {
+      "mae_minutes": 54.187,
+      "rmse_minutes": 69.004,
+      "r2_score": -0.0,
+      "within_10_minutes_percent": 10.0
+    },
+    "ridge_regression": {
+      "mae_minutes": 11.269,
+      "rmse_minutes": 16.43,
+      "r2_score": 0.9433,
+      "within_10_minutes_percent": 59.47
+    },
+    "random_forest": {
+      "mae_minutes": 7.521,
+      "rmse_minutes": 10.88,
+      "r2_score": 0.9751,
+      "within_10_minutes_percent": 74.13
+    },
+    "xgboost": {
+      "mae_minutes": 6.855,
+      "rmse_minutes": 9.799,
+      "r2_score": 0.9798,
+      "within_10_minutes_percent": 77.73
+    }
+  },
+  "test_performance": {
+    "mae_minutes": 7.069,
+    "rmse_minutes": 9.942,
+    "r2_score": 0.9787,
+    "within_10_minutes_percent": 76.27
+  }
+}

@@ -65,3 +65,9 @@ class Hospital(Base, UUIDMixin, TimestampMixin):
         back_populates="hospital",
         cascade="all, delete-orphan",
     )
+    hospital_admins: Mapped[List["User"]] = relationship(
+        "User",
+        back_populates="hospital",
+        foreign_keys="User.hospital_id",
+    )
+

@@ -1,9 +1,12 @@
+import uuid
 from typing import TYPE_CHECKING, List, Optional
-from sqlalchemy import Boolean, String
+from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
 if TYPE_CHECKING:
+    from app.models.hospital import Hospital
     from app.models.doctor import Doctor
     from app.models.appointment import Appointment
     from app.models.queue import QueueEntry
@@ -19,8 +22,19 @@ class User(Base, UUIDMixin, TimestampMixin):
     phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     role: Mapped[str] = mapped_column(String(20), nullable=False, default="patient")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    hospital_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("hospitals.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
 
     # Relationships
+    hospital: Mapped[Optional["Hospital"]] = relationship(
+        "Hospital",
+        back_populates="hospital_admins",
+        foreign_keys=[hospital_id],
+    )
     doctor: Mapped[Optional["Doctor"]] = relationship(
         "Doctor",
         back_populates="user",
@@ -37,3 +51,4 @@ class User(Base, UUIDMixin, TimestampMixin):
         back_populates="patient",
         cascade="all, delete-orphan",
     )
+

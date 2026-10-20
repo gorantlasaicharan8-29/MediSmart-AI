@@ -37,6 +37,7 @@ class UserResponse(BaseModel):
     phone: Optional[str] = None
     role: str
     is_active: bool
+    hospital_id: Optional[uuid.UUID] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

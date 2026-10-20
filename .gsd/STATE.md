@@ -1,15 +1,27 @@
 # STATE.md — Project Memory
 
-> Last updated: 2026-10-18 16:50 IST
+> Last updated: 2026-10-20 22:45 IST
 
 ## Current Position
 
-- **Phase**: 5 — Digital Queue & Real-Time Updates (Plans 5.1 & 5.2 COMPLETE ✓)
-- **Status**: Plan 5.2 Implemented, Audited & Corrected (93/93 tests passing); Ready for Plan 5.3 Authorization
-- **Completed Plans in Phase 5**:
+- **Phase**: 6 — ML Predictions (Wait Time & No-Show)
+- **Active Plan**: Plan 6.5: ML Prediction API Endpoints (COMPLETED)
+- **Status**: Phase 6.5 successfully implemented, tested, and verified. FastAPI prediction endpoints exposed (`POST /api/v1/predictions/waiting-time`, `POST /api/v1/predictions/no-show`, `GET /api/v1/predictions/status`), active authentication enforced, thread-safe cached ML inference, sanitized 503/500 errors without path/trace leakage, zero DB mutations, synthetic disclaimers retained. 12/12 ML API tests passing, 66/66 total ML tests passing, 171/171 full backend suite passing.
+- **Completed Plans in Phase 5 & 5.5**:
   - Plan 5.1: Queue Models, Additive Migration (52a1b9e8c4d1), Constraints & Concurrency Safeguards
   - Plan 5.2: Real-Time Queue Engine, Token Allocation APIs, WebSocket & Security Audit Corrections (F-01 to F-04)
-- **Next Up**: Plan 5.3 — Patient Live Queue Tracker & Public Monitor Frontend (awaiting authorization)
+  - Plan 5.3: Patient Live Queue Tracker & Public Waiting Room Monitor Display (Scope A & Scope B)
+  - Plan 5.4: Doctor Consultation Queue Console with Real-Time Updates & Session Recall
+  - Plan 5.5: Security & Data-Integrity Remediation (Clinical notes privacy fix, persistent hospital affiliation, DB-validated authorization, test DB isolation, additive migration `63b2c1f9d5e2` applied to `medismart_db`)
+- **Completed in Phase 6**:
+  - Plan 6.1: ML Dataset Generation and Validation (`waiting_time_dataset.csv`, `noshow_dataset.csv`, `test_ml_dataset.py`, zero DB mutations, zero PII, zero target leakage)
+  - Plan 6.2: Waiting-Time Prediction Model Training (`train_waiting_time.py`, `estimators.py`, `waiting_time_pipeline.joblib`, `waiting_time_metrics.json`, `test_ml_waiting_time.py`)
+  - Plan 6.3: Appointment No-Show Prediction Model Training (`train_noshow.py`, `ThresholdClassifier`, `noshow_pipeline.joblib`, `noshow_metrics.json`, `test_ml_noshow.py`)
+  - Plan 6.4: Shared ML Prediction Service (`app/ml/service.py`, `app/schemas/ml.py`, `app/services/ml_prediction.py`, `test_ml_service.py`)
+  - Plan 6.5: ML Prediction API Endpoints (`backend/app/api/v1/predictions.py`, router registration in `backend/app/api/v1/__init__.py`, `backend/tests/test_ml_api.py`)
+- **Next Up**: Phase 6.6 — Real-Time Queue & Booking Integration (Awaiting review and approval).
+
+
 
 ## Phase 4 Verification Summary
 
@@ -99,6 +111,69 @@
   - `oxlint`: 0 errors, 0 warnings across 29 files.
   - Vite production build: clean build in 1.74s.
 
+## Phase 5.3 Verification Summary
+- **Scope A — Patient Live Queue Tracker**:
+  - Live token badge, dynamic position countdown, and consultation progress stepper (Checked In -> Waiting -> In Consultation -> Completed).
+  - Turn-approaching alert banner with audio chime when position <= 2.
+  - Interactive self check-in card when patient has no active token for today.
+  - Cancel queue entry confirmation modal with atomic status updates.
+- **Scope B — Waiting Room Monitor Display**:
+  - Full-screen TV/wall display with high contrast and extra-large typography (text-7xl to text-9xl).
+  - "Now Serving" hero token card with pulsating beacon.
+  - "Next in Line" upcoming tokens grid showing token display, position, and estimated wait times.
+  - Zero-PII privacy guarantee: no patient names, phone numbers, emails, or clinical notes rendered.
+  - Web Audio announcement chime and visual pulse highlight on `PATIENT_CALLED`.
+  - Doctor queue selector dropdown and fullscreen toggle button.
+  - Dedicated standalone TV kiosk routes at `/queue/monitor` and `/queue/monitor/:doctorId`.
+- **Dual-Transport Real-Time Engine**:
+  - `useQueueSocket` hook with automatic reconnect and 10-second polling fallback.
+- **Verification Results**:
+  - Frontend lint (`oxlint`): 0 warnings, 0 errors across 33 files.
+  - Frontend build (`vite build`): Clean build in 4.81s.
+  - Backend regression suite (`pytest`): 93 passed in 10.22s.
+  - Database integrity on `medismart_db`: 8 hospitals, 10 doctors, 10 users, 0 appointments, 0 queue entries. Zero schema alterations.
+
+## Phase 5.4 Verification Summary
+- **Doctor Consultation Queue Console (`DoctorQueueConsole.jsx`)**:
+  - Doctor scoping: automatically matches authenticated doctor account against clinical profile (`Doctor.user_id === user.id`).
+  - Active consultation workspace: patient demographics, scheduled slot, token badge (`Q-002`), live elapsed timer (MM:SS), and clinical notes input.
+  - Lifecycle actions: "Complete Consultation" (`POST /{id}/complete`) and "Skip Patient" (`POST /{id}/skip`) with atomic status sync to appointment table.
+  - "Call Next Patient" quick action on exam room hero card when room is available.
+  - Waiting queue list with individual "Call" and "Skip" action buttons.
+  - Skipped patients section with 1-click "↩ Recall" (`POST /{id}/recall`) back into waiting line.
+  - KPI metric summary cards: Total Waiting, In Consultation, Completed Today, Skipped Today.
+  - Concurrency 409 conflict handling: clear, non-blocking alert if doctor attempts to call while another consultation is active.
+- **Route & Page Integration**:
+  - `Queue.jsx` Tab 3 ("🩺 Doctor Console") with automatic selection for doctor role and deep linking (`?tab=doctor`).
+  - Dedicated protected routes `/queue/doctor` and `/queue/doctor/:doctorId` restricted to clinical staff.
+- **Verification Results**:
+  - Frontend lint (`oxlint`): 0 warnings, 0 errors across 34 files.
+  - Frontend build (`vite build`): Clean build in 618ms.
+  - Backend regression suite (`pytest`): 93 passed in 7.31s.
+  - Database integrity on `medismart_db`: 8 hospitals, 10 doctors, 10 users, 0 appointments, 0 queue entries. Zero schema alterations.
+
+## Phase 5.5 Verification Summary
+- **Patient Clinical-Notes Privacy Fix**:
+  - Removed `notes` from `QueueEntryResponse` (`GET /api/v1/queue/my` and check-in response).
+  - Retained `notes` strictly in `DoctorQueueItemResponse` and `DoctorQueueResponse` for authenticated clinical staff.
+  - Confirmed public monitor (`QueuePublicBoardResponse`) and WebSocket messages contain zero patient PII and zero clinical notes.
+- **Persistent Hospital Affiliation & Database-Validated Authorization**:
+  - Additive migration `63b2c1f9d5e2` applied to `medismart_db`.
+  - Added nullable `users.hospital_id` UUID column with foreign key referencing `hospitals.id` (`ON DELETE SET NULL`) and lookup index `ix_users_hospital_id`.
+  - Authoritative database validation in `deps.get_current_user`: hospital affiliation is loaded directly from PostgreSQL and validated against JWT claims.
+  - Client headers (e.g. `X-Hospital-Id`) and spoofed/stale JWT claims are rejected.
+  - Removing an affiliation in the database results in immediate `401`/`403` fail-closed authorization denial on subsequent requests.
+  - Administrative provisioning CLI (`scripts/create_admin.py`) accepts `--hospital-id` and validates target hospital existence. Public registration blocks administrative roles.
+- **Strict Test Database Isolation**:
+  - `backend/tests/conftest.py` enforces isolation guard redirecting all test executions to `medismart_test_db`.
+  - Hard fail-fast assertion prevents test suite execution if `medismart_test_db` is not the target.
+- **Verification Results**:
+  - Backend regression suite (`pytest tests/ -v`): 105 passed in 8.42s across all 8 test modules on `medismart_test_db`.
+  - Frontend lint (`oxlint`): 0 warnings, 0 errors across 34 files.
+  - Frontend production build (`vite build`): Clean build in 572ms.
+  - Active `medismart_db` baseline: revision `63b2c1f9d5e2`, 8 hospitals, 10 doctors, 10 users (all with `hospital_id IS NULL`), 0 appointments, 0 queue entries.
+
 ## Next Steps
-1. Review Plan 5.2 final report.
-2. Proceed to Plan 5.3 (Patient Live Queue Tracker & Public Monitor Frontend) upon user approval.
+1. Phase 5.5 Security & Integrity Remediation is COMPLETE.
+2. Await user instructions for Phase 6 (ML Predictions: Wait Time & No-Show).
+

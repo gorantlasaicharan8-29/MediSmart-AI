@@ -39,7 +39,7 @@ class QueuePublicBoardResponse(BaseModel):
 
 
 class QueueEntryResponse(BaseModel):
-    """Patient queue status response."""
+    """Patient queue status response (strictly zero doctor clinical notes)."""
     id: uuid.UUID
     appointment_id: uuid.UUID
     hospital_id: uuid.UUID
@@ -51,7 +51,6 @@ class QueueEntryResponse(BaseModel):
     position: int
     status: str
     estimated_wait_minutes: Optional[int] = None
-    notes: Optional[str] = None
     checked_in_at: datetime
     called_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None

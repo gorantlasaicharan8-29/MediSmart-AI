@@ -1,0 +1,302 @@
+{
+  "task": "noshow_classification",
+  "target": "is_no_show",
+  "selected_model": "logistic_regression",
+  "calibrated_threshold": 0.5,
+  "random_seed": 42,
+  "dataset_provenance": "100% SYNTHETIC (backend/app/ml/data/noshow_dataset.csv)",
+  "synthetic_notice": "All metrics reflect performance exclusively on synthetic appointment records. These metrics must not be represented as real clinical accuracy.",
+  "trained_at_utc": "2026-10-20T11:10:10.361134+00:00",
+  "splits": {
+    "total_records": 10000,
+    "train": {
+      "count": 7000,
+      "no_show_prevalence": 0.2316,
+      "date_start": "2026-01-01",
+      "date_end": "2026-05-05"
+    },
+    "validation": {
+      "count": 1500,
+      "no_show_prevalence": 0.2347,
+      "date_start": "2026-05-05",
+      "date_end": "2026-06-02"
+    },
+    "test": {
+      "count": 1500,
+      "no_show_prevalence": 0.2353,
+      "date_start": "2026-06-02",
+      "date_end": "2026-06-29"
+    }
+  },
+  "feature_schema": {
+    "categorical": [
+      "doctor_specialty"
+    ],
+    "numeric": [
+      "lead_time_days",
+      "day_of_week",
+      "slot_hour",
+      "is_weekend",
+      "consultation_fee",
+      "patient_prior_appointments",
+      "patient_prior_no_shows",
+      "patient_prior_no_show_rate",
+      "has_notes"
+    ],
+    "all_features": [
+      "doctor_specialty",
+      "lead_time_days",
+      "day_of_week",
+      "slot_hour",
+      "is_weekend",
+      "consultation_fee",
+      "patient_prior_appointments",
+      "patient_prior_no_shows",
+      "patient_prior_no_show_rate",
+      "has_notes"
+    ]
+  },
+  "class_imbalance_analysis": {
+    "train_prevalence": 0.2316,
+    "validation_prevalence": 0.2347,
+    "test_prevalence": 0.2353,
+    "scale_pos_weight": 3.32,
+    "explanation": "With ~23% no-show prevalence, standard accuracy is misleading because predicting all zeros yields ~77% accuracy with 0 recall. PR-AUC and F1-score evaluate true positive recovery under clinical resource constraints."
+  },
+  "validation_comparison": {
+    "dummy_baseline": {
+      "standard_threshold_0.5": {
+        "pr_auc": 0.2347,
+        "roc_auc": 0.5,
+        "brier_score": 0.1796,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "threshold": 0.5,
+        "confusion_matrix": [
+          [
+            1148,
+            0
+          ],
+          [
+            352,
+            0
+          ]
+        ],
+        "prevalence": 0.2347
+      },
+      "optimal_threshold_tuning": {
+        "optimal_threshold": 0.2,
+        "metrics_at_optimal": {
+          "pr_auc": 0.2347,
+          "roc_auc": 0.5,
+          "brier_score": 0.1796,
+          "precision": 0.2347,
+          "recall": 1.0,
+          "f1_score": 0.3801,
+          "threshold": 0.2,
+          "confusion_matrix": [
+            [
+              0,
+              1148
+            ],
+            [
+              0,
+              352
+            ]
+          ],
+          "prevalence": 0.2347
+        }
+      },
+      "pr_auc": 0.2347,
+      "roc_auc": 0.5,
+      "brier_score": 0.1796
+    },
+    "logistic_regression": {
+      "standard_threshold_0.5": {
+        "pr_auc": 0.4062,
+        "roc_auc": 0.6765,
+        "brier_score": 0.2214,
+        "precision": 0.3711,
+        "recall": 0.5767,
+        "f1_score": 0.4516,
+        "threshold": 0.5,
+        "confusion_matrix": [
+          [
+            804,
+            344
+          ],
+          [
+            149,
+            203
+          ]
+        ],
+        "prevalence": 0.2347
+      },
+      "optimal_threshold_tuning": {
+        "optimal_threshold": 0.5,
+        "metrics_at_optimal": {
+          "pr_auc": 0.4062,
+          "roc_auc": 0.6765,
+          "brier_score": 0.2214,
+          "precision": 0.3711,
+          "recall": 0.5767,
+          "f1_score": 0.4516,
+          "threshold": 0.5,
+          "confusion_matrix": [
+            [
+              804,
+              344
+            ],
+            [
+              149,
+              203
+            ]
+          ],
+          "prevalence": 0.2347
+        }
+      },
+      "pr_auc": 0.4062,
+      "roc_auc": 0.6765,
+      "brier_score": 0.2214
+    },
+    "random_forest": {
+      "standard_threshold_0.5": {
+        "pr_auc": 0.3716,
+        "roc_auc": 0.6568,
+        "brier_score": 0.2201,
+        "precision": 0.3406,
+        "recall": 0.5312,
+        "f1_score": 0.4151,
+        "threshold": 0.5,
+        "confusion_matrix": [
+          [
+            786,
+            362
+          ],
+          [
+            165,
+            187
+          ]
+        ],
+        "prevalence": 0.2347
+      },
+      "optimal_threshold_tuning": {
+        "optimal_threshold": 0.39,
+        "metrics_at_optimal": {
+          "pr_auc": 0.3716,
+          "roc_auc": 0.6568,
+          "brier_score": 0.2201,
+          "precision": 0.2993,
+          "recall": 0.7585,
+          "f1_score": 0.4293,
+          "threshold": 0.39,
+          "confusion_matrix": [
+            [
+              523,
+              625
+            ],
+            [
+              85,
+              267
+            ]
+          ],
+          "prevalence": 0.2347
+        }
+      },
+      "pr_auc": 0.3716,
+      "roc_auc": 0.6568,
+      "brier_score": 0.2201
+    },
+    "xgboost": {
+      "standard_threshold_0.5": {
+        "pr_auc": 0.3978,
+        "roc_auc": 0.6569,
+        "brier_score": 0.2181,
+        "precision": 0.3527,
+        "recall": 0.5341,
+        "f1_score": 0.4249,
+        "threshold": 0.5,
+        "confusion_matrix": [
+          [
+            803,
+            345
+          ],
+          [
+            164,
+            188
+          ]
+        ],
+        "prevalence": 0.2347
+      },
+      "optimal_threshold_tuning": {
+        "optimal_threshold": 0.52,
+        "metrics_at_optimal": {
+          "pr_auc": 0.3978,
+          "roc_auc": 0.6569,
+          "brier_score": 0.2181,
+          "precision": 0.3714,
+          "recall": 0.517,
+          "f1_score": 0.4323,
+          "threshold": 0.52,
+          "confusion_matrix": [
+            [
+              840,
+              308
+            ],
+            [
+              170,
+              182
+            ]
+          ],
+          "prevalence": 0.2347
+        }
+      },
+      "pr_auc": 0.3978,
+      "roc_auc": 0.6569,
+      "brier_score": 0.2181
+    }
+  },
+  "test_performance": {
+    "standard_threshold_0.5": {
+      "pr_auc": 0.4044,
+      "roc_auc": 0.6679,
+      "brier_score": 0.2259,
+      "precision": 0.3563,
+      "recall": 0.5864,
+      "f1_score": 0.4433,
+      "threshold": 0.5,
+      "confusion_matrix": [
+        [
+          773,
+          374
+        ],
+        [
+          146,
+          207
+        ]
+      ],
+      "prevalence": 0.2353
+    },
+    "calibrated_threshold": {
+      "pr_auc": 0.4044,
+      "roc_auc": 0.6679,
+      "brier_score": 0.2259,
+      "precision": 0.3563,
+      "recall": 0.5864,
+      "f1_score": 0.4433,
+      "threshold": 0.5,
+      "confusion_matrix": [
+        [
+          773,
+          374
+        ],
+        [
+          146,
+          207
+        ]
+      ],
+      "prevalence": 0.2353
+    }
+  }
+}

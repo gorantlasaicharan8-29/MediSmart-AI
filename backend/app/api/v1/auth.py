@@ -101,7 +101,11 @@ async def login(
         )
 
     # Generate JWT access token with short 60-min TTL
-    access_token = create_access_token(user_id=user.id, role=user.role)
+    access_token = create_access_token(
+        user_id=user.id,
+        role=user.role,
+        hospital_id=user.hospital_id,
+    )
 
     # Set secure HttpOnly cookie for browser transport
     response.set_cookie(

@@ -19,8 +19,11 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-# Use sync psycopg2 driver for Alembic migrations
-sync_db_url = settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+# Use sync psycopg2 driver for Alembic migrations.
+# Checks for explicit database target via -x db_url=... or DATABASE_URL env var before falling back to settings.
+x_args = context.get_x_argument(as_dictionary=True)
+target_url = x_args.get("db_url") or os.environ.get("DATABASE_URL") or settings.DATABASE_URL
+sync_db_url = target_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
 
 # Escape % for ConfigParser compatibility
 config.set_main_option("sqlalchemy.url", sync_db_url.replace("%", "%%"))
