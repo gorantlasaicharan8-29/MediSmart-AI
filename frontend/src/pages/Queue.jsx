@@ -4,6 +4,7 @@ import { useAuth } from '../context/useAuth'
 import PatientQueueTracker from '../components/queue/PatientQueueTracker'
 import WaitingRoomMonitor from '../components/queue/WaitingRoomMonitor'
 import DoctorQueueConsole from '../components/queue/DoctorQueueConsole'
+import MLStatusBadge from '../components/ml/MLStatusBadge'
 
 export default function Queue() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -28,10 +29,13 @@ export default function Queue() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Live Clinic Queue &amp; Waiting Room
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <div className="flex flex-wrap items-center gap-2.5 mb-1.5">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              Live Clinic Queue &amp; Waiting Room
+            </h1>
+            <MLStatusBadge compact />
+          </div>
+          <p className="text-sm text-slate-500">
             Real-time digital token tracking, public waiting room displays, and clinical consultation management.
           </p>
         </div>

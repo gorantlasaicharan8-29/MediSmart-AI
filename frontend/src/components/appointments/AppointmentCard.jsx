@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
+import NoShowRiskBadge from './NoShowRiskBadge'
 
-export default function AppointmentCard({ appointment, onCancel, isCancelling }) {
+export default function AppointmentCard({ appointment, onCancel, isCancelling, priorStats = null }) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [reason, setReason] = useState('')
 
@@ -60,7 +61,10 @@ export default function AppointmentCard({ appointment, onCancel, isCancelling })
             {appointment.appointment_token}
           </span>
         </div>
-        <div>{renderStatusBadge()}</div>
+        <div className="flex flex-wrap items-center gap-2">
+          {renderStatusBadge()}
+          <NoShowRiskBadge appointment={appointment} priorStats={priorStats} />
+        </div>
       </div>
 
       {/* Main Details */}

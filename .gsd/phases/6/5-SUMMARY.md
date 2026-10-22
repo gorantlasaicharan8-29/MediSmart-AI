@@ -11,7 +11,7 @@
 
 1. **FastAPI ML Prediction Router (`backend/app/api/v1/predictions.py`)**:
    - `POST /api/v1/predictions/waiting-time`: Validates `WaitingTimePredictionRequest` via Pydantic, calls cached ML prediction service, returns `WaitingTimePredictionResponse` with guaranteed non-negative wait minutes and synthetic training disclosure.
-   - `POST /api/v1/predictions/no-show`: Validates `NoShowPredictionRequest` via Pydantic, calls cached ML prediction service, returns `NoShowPredictionResponse` with bounded probability $[0.0, 1.0]$, calibrated binary prediction ($p \ge 0.35$), illustrative risk band, and synthetic training disclosure.
+   - `POST /api/v1/predictions/no-show`: Validates `NoShowPredictionRequest` via Pydantic, calls cached ML prediction service, returns `NoShowPredictionResponse` with bounded probability $[0.0, 1.0]$, calibrated binary prediction ($p \ge 0.50$), illustrative risk band, and synthetic training disclosure.
    - `GET /api/v1/predictions/status`: Reports health, readiness, and artifact details for both models without leaking system paths.
 2. **Router Registration (`backend/app/api/v1/__init__.py`)**:
    - Mounted `predictions_router` under prefix `/predictions` with OpenAPI tag `predictions`.

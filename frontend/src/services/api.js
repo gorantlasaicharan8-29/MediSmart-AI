@@ -314,3 +314,39 @@ export async function recallQueuePatient(entryId, notes = null) {
   })
 }
 
+// ---------------------------------------------------------------------------
+// Phase 6.6: Machine Learning Prediction Services
+// ---------------------------------------------------------------------------
+
+/**
+ * Predict patient waiting time in minutes at clinic check-in.
+ * Authenticated via HttpOnly session cookies (zero localStorage tokens).
+ */
+export async function predictWaitingTime(data) {
+  return await request('/api/v1/predictions/waiting-time', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Predict appointment no-show probability and risk band.
+ * Authenticated via HttpOnly session cookies (zero localStorage tokens).
+ */
+export async function predictNoShow(data) {
+  return await request('/api/v1/predictions/no-show', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Check ML model service availability and metadata status.
+ * Authenticated via HttpOnly session cookies.
+ */
+export async function getMLServiceStatus() {
+  return await request('/api/v1/predictions/status', {
+    method: 'GET',
+  })
+}
+

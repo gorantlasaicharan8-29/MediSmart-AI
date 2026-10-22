@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { getMyQueueEntry, checkInQueue, cancelQueueEntry } from '../../services/api'
+import {
+  getMyQueueEntry,
+  checkInQueue,
+  cancelQueueEntry,
+  getDoctorById,
+  predictWaitingTime,
+} from '../../services/api'
 import { useQueueSocket } from '../../hooks/useQueueSocket'
 import { playChime } from '../../utils/sound'
 
@@ -21,6 +27,108 @@ export default function PatientQueueTracker() {
 
   // Audio cue state tracking
   const alertedPositionRef = useRef(null)
+
+  // ML Waiting-Time Prediction State (Phase 6.6)
+  const [mlPrediction, setMlPrediction] = useState(null)
+  const [mlLoading, setMlLoading] = useState(false)
+  const [mlUnavailable, setMlUnavailable] = useState(false)
+  const doctorCacheRef = useRef({})
+
+  // Fetch ML waiting-time prediction when active entry is in waiting state
+  useEffect(() => {
+    let isMounted = true
+
+    // Only query when active entry is waiting and has required IDs
+    if (!activeEntry || activeEntry.status !== 'waiting' || !activeEntry.doctor_id) {
+      return
+    }
+
+    const loadPrediction = async () => {
+      Promise.resolve().then(() => {
+        if (isMounted) {
+          setMlLoading(true)
+          setMlUnavailable(false)
+        }
+      })
+
+      try {
+        // Fetch or use cached doctor metadata
+        let doc = doctorCacheRef.current[activeEntry.doctor_id]
+        if (!doc) {
+          doc = await getDoctorById(activeEntry.doctor_id)
+          if (doc) doctorCacheRef.current[activeEntry.doctor_id] = doc
+        }
+
+        // Strict validation: Never invent missing features
+        if (!doc || !doc.specialty || doc.experience_years == null || !activeEntry.appointment_time) {
+          if (isMounted) {
+            setMlPrediction(null)
+            setMlLoading(false)
+          }
+          return
+        }
+
+        const [slotH, slotM] = activeEntry.appointment_time.split(':').map((v) => parseInt(v, 10))
+        if (isNaN(slotH) || isNaN(slotM)) {
+          if (isMounted) {
+            setMlPrediction(null)
+            setMlLoading(false)
+          }
+          return
+        }
+
+        const qDate = activeEntry.queue_date ? new Date(activeEntry.queue_date) : new Date()
+        const rawDay = qDate.getDay()
+        const dayOfWeek = rawDay === 0 ? 6 : rawDay - 1
+
+        let arrivalLead = 0.0
+        if (activeEntry.checked_in_at && activeEntry.appointment_time) {
+          const apptDt = new Date(
+            `${activeEntry.queue_date || new Date().toISOString().slice(0, 10)}T${activeEntry.appointment_time}:00`
+          )
+          const checkInDt = new Date(activeEntry.checked_in_at)
+          const diffMinutes = (apptDt - checkInDt) / 60000
+          if (!isNaN(diffMinutes)) {
+            arrivalLead = Math.max(-180.0, Math.min(180.0, Math.round(diffMinutes)))
+          }
+        }
+
+        const payload = {
+          doctor_specialty: doc.specialty,
+          doctor_experience_years: Math.max(0, Math.min(70, parseInt(doc.experience_years, 10) || 0)),
+          day_of_week: dayOfWeek,
+          slot_hour: Math.max(0, Math.min(23, slotH)),
+          slot_minute: Math.max(0, Math.min(59, slotM)),
+          arrival_lead_minutes: arrivalLead,
+          queue_position_at_checkin: Math.max(1, activeEntry.token_number || activeEntry.position || 1),
+          patients_waiting_ahead: Math.max(0, (activeEntry.position || 1) - 1),
+          is_doctor_active_consultation: activeEntry.position > 1 ? 1 : 0,
+          historical_avg_consultation_minutes: 15.0,
+        }
+
+        const pred = await predictWaitingTime(payload)
+        if (isMounted) {
+          setMlPrediction(pred)
+          setMlUnavailable(false)
+        }
+      } catch {
+        if (isMounted) {
+          setMlPrediction(null)
+          setMlUnavailable(true)
+        }
+      } finally {
+        if (isMounted) {
+          setMlLoading(false)
+        }
+      }
+    }
+
+    loadPrediction()
+
+    return () => {
+      isMounted = false
+    }
+  }, [activeEntry])
 
   // Fetcher for active patient entry
   const fetchMyQueue = async () => {
@@ -251,6 +359,7 @@ export default function PatientQueueTracker() {
   const isInConsultation = activeEntry.status === 'in_consultation'
   const isCompleted = activeEntry.status === 'completed'
   const isSkipped = activeEntry.status === 'skipped'
+  const currentMlPrediction = activeEntry.status === 'waiting' ? mlPrediction : null
 
   return (
     <div className="space-y-6">
@@ -381,11 +490,19 @@ export default function PatientQueueTracker() {
             </span>
           </div>
 
-          {/* Card 3: Estimated Wait Time */}
+          {/* Card 3: Estimated Wait Time (Phase 6.6 ML Enhanced) */}
           <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between space-y-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Est. Waiting Time
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Est. Waiting Time
+              </span>
+              {currentMlPrediction && !isInConsultation && !isCompleted && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800 border border-teal-200">
+                  🤖 AI Estimate
+                </span>
+              )}
+            </div>
+
             <div className="space-y-1">
               {isInConsultation ? (
                 <div className="flex items-baseline gap-2 text-emerald-600">
@@ -395,21 +512,52 @@ export default function PatientQueueTracker() {
                 <div className="text-blue-600">
                   <span className="text-4xl font-black tracking-tight">0 min</span>
                 </div>
+              ) : mlLoading ? (
+                <div className="space-y-2 py-1">
+                  <div className="h-10 w-28 bg-slate-200 animate-pulse rounded-lg"></div>
+                  <p className="text-[11px] text-slate-400">Calculating AI queue pace...</p>
+                </div>
+              ) : currentMlPrediction ? (
+                <div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-5xl font-black text-teal-900 tracking-tight">
+                      ~{currentMlPrediction.predicted_wait_minutes}
+                    </span>
+                    <span className="text-sm font-bold text-teal-700 uppercase">
+                      {currentMlPrediction.unit || 'mins'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Powered by <span className="font-semibold text-slate-700">{currentMlPrediction.model_name}</span> (v{currentMlPrediction.model_version})
+                  </p>
+                </div>
               ) : (
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-5xl font-black text-slate-900 tracking-tight">
-                    ~{activeEntry.estimated_wait_minutes}
-                  </span>
-                  <span className="text-sm font-bold text-slate-400 uppercase">mins</span>
+                <div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-5xl font-black text-slate-900 tracking-tight">
+                      ~{activeEntry.estimated_wait_minutes ?? (Math.max(0, activeEntry.position - 1) * 15)}
+                    </span>
+                    <span className="text-sm font-bold text-slate-400 uppercase">mins</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {mlUnavailable ? 'Standard queue heuristic (AI model offline)' : 'Standard clinic heuristic (15 min / patient)'}
+                  </p>
                 </div>
               )}
-              <p className="text-xs text-slate-500 mt-1">
-                {isInConsultation ? 'Session in progress' : 'Based on average 15 min / patient'}
-              </p>
             </div>
-            <span className="text-xs font-semibold text-slate-400 pt-2 border-t border-slate-200/60">
-              Standard Clinic Estimate
-            </span>
+
+            {/* Provenance Disclosure / Notice */}
+            <div className="pt-2 border-t border-slate-200/60">
+              {currentMlPrediction && !isInConsultation && !isCompleted ? (
+                <p className="text-[10px] text-amber-800/90 bg-amber-50/70 px-2 py-1 rounded-lg border border-amber-200/60">
+                  ⚠️ <strong>Demonstration Only:</strong> Trained on synthetic queue data; not clinically calibrated.
+                </p>
+              ) : (
+                <span className="text-xs font-semibold text-slate-400">
+                  Standard Clinic Estimate
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import AppointmentCard from '../components/appointments/AppointmentCard'
+import MLStatusBadge from '../components/ml/MLStatusBadge'
 import { cancelAppointment, getMyAppointments } from '../services/api'
 
 export default function Appointments() {
@@ -70,8 +71,11 @@ export default function Appointments() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-800 border border-teal-200 mb-2">
-            <span>📅</span> Patient Appointments Dashboard
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-800 border border-teal-200">
+              <span>📅</span> Patient Appointments Dashboard
+            </div>
+            <MLStatusBadge compact />
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
             My Consultation Appointments
@@ -188,14 +192,26 @@ export default function Appointments() {
         </div>
       ) : (
         <div className="space-y-4">
-          {appointments.map((appt) => (
-            <AppointmentCard
-              key={appt.id}
-              appointment={appt}
-              onCancel={handleCancelAppointment}
-              isCancelling={cancellingId === appt.id}
-            />
-          ))}
+          {appointments.map((appt) => {
+            // Compute real chronological prior history without inventing features
+            const apptTime = new Date(appt.created_at || appt.appointment_date).getTime()
+            const priorList = appointments.filter(
+              (o) => o.id !== appt.id && new Date(o.created_at || o.appointment_date).getTime() < apptTime
+            )
+            const priorCount = priorList.length
+            const priorNoShows = priorList.filter((a) => a.status === 'no_show').length
+            const priorRate = priorCount > 0 ? priorNoShows / priorCount : 0.0
+
+            return (
+              <AppointmentCard
+                key={appt.id}
+                appointment={appt}
+                onCancel={handleCancelAppointment}
+                isCancelling={cancellingId === appt.id}
+                priorStats={{ priorCount, priorNoShows, priorRate }}
+              />
+            )
+          })}
         </div>
       )}
     </div>

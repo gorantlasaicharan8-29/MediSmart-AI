@@ -1,12 +1,12 @@
 # STATE.md — Project Memory
 
-> Last updated: 2026-10-20 22:45 IST
+> Last updated: 2026-10-22 10:15 IST
 
 ## Current Position
 
 - **Phase**: 6 — ML Predictions (Wait Time & No-Show)
-- **Active Plan**: Plan 6.5: ML Prediction API Endpoints (COMPLETED)
-- **Status**: Phase 6.5 successfully implemented, tested, and verified. FastAPI prediction endpoints exposed (`POST /api/v1/predictions/waiting-time`, `POST /api/v1/predictions/no-show`, `GET /api/v1/predictions/status`), active authentication enforced, thread-safe cached ML inference, sanitized 503/500 errors without path/trace leakage, zero DB mutations, synthetic disclaimers retained. 12/12 ML API tests passing, 66/66 total ML tests passing, 171/171 full backend suite passing.
+- **Active Plan**: Plan 6.6: Frontend Integration of ML Predictions (COMPLETED)
+- **Status**: Phase 6.6 successfully implemented, verified, and integrated into the React frontend. Client service wrappers added (`predictWaitingTime`, `predictNoShow`, `getMLServiceStatus`) reusing HttpOnly cookie flow (zero localStorage tokens). Patient Queue Tracker augmented with AI wait times, loading state, graceful heuristic fallback, and synthetic disclaimers. Appointments Dashboard augmented with non-diagnostic attendance risk badge derived from real chronological history. Reusable `MLStatusBadge` added to Queue and Appointments headers. Oxlint 0 warnings/0 errors, Vite production build clean (2.35s), 171/171 backend tests passing, `medismart_db` baseline untouched at revision `63b2c1f9d5e2`.
 - **Completed Plans in Phase 5 & 5.5**:
   - Plan 5.1: Queue Models, Additive Migration (52a1b9e8c4d1), Constraints & Concurrency Safeguards
   - Plan 5.2: Real-Time Queue Engine, Token Allocation APIs, WebSocket & Security Audit Corrections (F-01 to F-04)
@@ -19,7 +19,8 @@
   - Plan 6.3: Appointment No-Show Prediction Model Training (`train_noshow.py`, `ThresholdClassifier`, `noshow_pipeline.joblib`, `noshow_metrics.json`, `test_ml_noshow.py`)
   - Plan 6.4: Shared ML Prediction Service (`app/ml/service.py`, `app/schemas/ml.py`, `app/services/ml_prediction.py`, `test_ml_service.py`)
   - Plan 6.5: ML Prediction API Endpoints (`backend/app/api/v1/predictions.py`, router registration in `backend/app/api/v1/__init__.py`, `backend/tests/test_ml_api.py`)
-- **Next Up**: Phase 6.6 — Real-Time Queue & Booking Integration (Awaiting review and approval).
+  - Plan 6.6: Frontend Integration of ML Predictions (`frontend/src/services/api.js`, `PatientQueueTracker.jsx`, `AppointmentCard.jsx`, `Appointments.jsx`, `MLStatusBadge.jsx`, `NoShowRiskBadge.jsx`)
+- **Next Up**: Phase 7 — Bed & Resource Tracking (Awaiting review and approval).
 
 
 

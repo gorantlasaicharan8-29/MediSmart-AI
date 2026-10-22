@@ -71,7 +71,7 @@
   - Passed 12 unit tests (`test_ml_waiting_time.py`).
 - **Phase 6.3 (No-Show Model)**:
   - Trained and evaluated no-show classification models (Baseline Dummy, Logistic Regression, Random Forest, XGBoost).
-  - Persisted best model (`noshow_pipeline.joblib`) with calibrated `ThresholdClassifier` (threshold=0.35, targeting recall for clinical intervention).
+  - Persisted best model (`noshow_pipeline.joblib`) with calibrated `ThresholdClassifier` (optimal validation threshold=0.50).
   - Passed 11 unit tests (`test_ml_noshow.py`).
 - **Phase 6.4 (Shared Prediction Service)**:
   - Implemented thread-safe in-memory `MLPredictionService` (`app/ml/service.py`) and singleton bridge (`app/services/ml_prediction.py`).

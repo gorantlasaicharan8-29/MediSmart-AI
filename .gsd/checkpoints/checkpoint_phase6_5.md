@@ -39,7 +39,7 @@
 ### Phase 6.3: Appointment No-Show Classification Model
 - Evaluated Logistic Regression, Random Forest, and XGBoost classifiers.
 - Persisted `backend/app/ml/artifacts/noshow_pipeline.joblib` and metrics JSON.
-- Calibrated `ThresholdClassifier` with decision threshold = 0.35 prioritizing recall for missed care prevention.
+- Calibrated `ThresholdClassifier` with optimal validation decision threshold = 0.50.
 - 11 automated unit tests (`tests/test_ml_noshow.py`).
 
 ### Phase 6.4: Shared ML Prediction Service
