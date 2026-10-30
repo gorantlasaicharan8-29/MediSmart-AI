@@ -1,5 +1,14 @@
 import React, { useState } from 'react'
 import { createHospital } from '../../services/api'
+import {
+  Modal,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Input,
+  Select,
+  ClinicalIcon,
+} from '../ui'
 
 export default function CreateHospitalModal({
   isOpen = false,
@@ -66,199 +75,164 @@ export default function CreateHospitalModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="p-6 pb-4 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Add Healthcare Facility</h2>
-            <p className="text-xs text-slate-500">Register new hospital or clinical center (Admin)</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
-          >
-            ✕
-          </button>
-        </div>
-
-        {errorMessage && (
-          <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
-            {errorMessage}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">Hospital Name *</label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Apollo Super Speciality Hospital"
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 bg-white"
-            />
-          </div>
-
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">Address *</label>
-            <input
-              type="text"
-              required
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Road, Sector, Landmark"
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 bg-white"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">City *</label>
-              <input
-                type="text"
-                required
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="New Delhi, Mumbai, etc."
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 bg-white"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">State *</label>
-              <input
-                type="text"
-                required
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                placeholder="State or Region"
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 bg-white"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Latitude <span className="text-slate-400 font-normal">(optional)</span>
-              </label>
-              <input
-                type="number"
-                step="any"
-                value={latitude}
-                onChange={(e) => setLatitude(e.target.value)}
-                placeholder="e.g. 28.5672"
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 bg-white"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Longitude <span className="text-slate-400 font-normal">(optional)</span>
-              </label>
-              <input
-                type="number"
-                step="any"
-                value={longitude}
-                onChange={(e) => setLongitude(e.target.value)}
-                placeholder="e.g. 77.2100"
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 bg-white"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Phone</label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+91 000 000 0000"
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 bg-white"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="contact@hospital.com"
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 bg-white"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">
-              Specialties <span className="text-slate-400 font-normal">(comma-separated)</span>
-            </label>
-            <input
-              type="text"
-              value={specialtiesText}
-              onChange={(e) => setSpecialtiesText(e.target.value)}
-              placeholder="Cardiology, Neurology, Pediatrics, Orthopedics"
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 bg-white"
-            />
-          </div>
-
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">
-              Facilities <span className="text-slate-400 font-normal">(comma-separated)</span>
-            </label>
-            <input
-              type="text"
-              value={facilitiesText}
-              onChange={(e) => setFacilitiesText(e.target.value)}
-              placeholder="ICU, Emergency 24/7, Blood Bank, MRI"
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 bg-white"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Data Source</label>
-              <select
-                value={dataSource}
-                onChange={(e) => setDataSource(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 bg-white"
-              >
-                <option value="verified">Verified Facility</option>
-                <option value="imported">OpenStreetMap Import</option>
-                <option value="sample">Sample / Test Facility</option>
-              </select>
-            </div>
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Attribution Notice</label>
-              <input
-                type="text"
-                value={sourceAttribution}
-                onChange={(e) => setSourceAttribution(e.target.value)}
-                placeholder="© OpenStreetMap contributors"
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 bg-white"
-              />
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      title="Add Healthcare Facility"
+      subtitle="Register new hospital or clinical center (Authorized Admin)"
+      showCloseButton={true}
+    >
+      <form onSubmit={handleSubmit} noValidate>
+        <ModalBody className="space-y-4">
+          {errorMessage && (
+            <div
+              role="alert"
+              className="p-3.5 rounded-xl bg-clinical-danger-bg border border-clinical-danger-border text-xs text-clinical-danger flex items-center gap-2"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
+              <ClinicalIcon name="alert-circle" size={16} ariaHidden="true" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          <Input
+            label="Hospital Facility Name"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Apollo Super Speciality Hospital"
+            disabled={isSubmitting}
+          />
+
+          <Input
+            label="Street Address / Area"
+            required
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="e.g. Ring Road, Sector 4"
+            disabled={isSubmitting}
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="City"
+              required
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="e.g. New Delhi, Mumbai"
               disabled={isSubmitting}
-              className="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-semibold shadow-xs"
-            >
-              {isSubmitting ? 'Saving Facility...' : 'Save Facility'}
-            </button>
+            />
+            <Input
+              label="State / Region"
+              required
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              placeholder="e.g. Delhi, Maharashtra"
+              disabled={isSubmitting}
+            />
           </div>
-        </form>
-      </div>
-    </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Latitude (optional)"
+              type="number"
+              step="any"
+              value={latitude}
+              onChange={(e) => setLatitude(e.target.value)}
+              placeholder="e.g. 28.5672"
+              disabled={isSubmitting}
+            />
+            <Input
+              label="Longitude (optional)"
+              type="number"
+              step="any"
+              value={longitude}
+              onChange={(e) => setLongitude(e.target.value)}
+              placeholder="e.g. 77.2100"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Phone Contact"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+91 000 000 0000"
+              disabled={isSubmitting}
+            />
+            <Input
+              label="Email Desk"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="contact@hospital.com"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <Input
+            label="Clinical Specialties"
+            value={specialtiesText}
+            onChange={(e) => setSpecialtiesText(e.target.value)}
+            placeholder="Cardiology, Neurology, Pediatrics, Orthopedics (comma-separated)"
+            helperText="Separate multiple departments with commas"
+            disabled={isSubmitting}
+          />
+
+          <Input
+            label="Infrastructure & Facilities"
+            value={facilitiesText}
+            onChange={(e) => setFacilitiesText(e.target.value)}
+            placeholder="ICU, Emergency 24/7, Blood Bank, MRI (comma-separated)"
+            helperText="Separate facility tags with commas"
+            disabled={isSubmitting}
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Select
+              label="Data Provenance"
+              value={dataSource}
+              onChange={(e) => setDataSource(e.target.value)}
+              disabled={isSubmitting}
+            >
+              <option value="verified">Verified Facility</option>
+              <option value="imported">OpenStreetMap Import</option>
+              <option value="sample">Sample / Test Facility</option>
+            </Select>
+
+            <Input
+              label="Attribution Notice"
+              value={sourceAttribution}
+              onChange={(e) => setSourceAttribution(e.target.value)}
+              placeholder="© OpenStreetMap contributors"
+              disabled={isSubmitting}
+            />
+          </div>
+        </ModalBody>
+
+        <ModalFooter>
+          <Button
+            variant="outline"
+            size="md"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="text-xs font-semibold"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            isLoading={isSubmitting}
+            className="text-xs font-semibold"
+          >
+            Save Facility
+          </Button>
+        </ModalFooter>
+      </form>
+    </Modal>
   )
 }

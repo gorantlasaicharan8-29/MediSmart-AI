@@ -23,7 +23,15 @@ async function request(url, options = {}) {
   }
 
   if (!res.ok) {
-    const error = new Error(data?.detail || `Request failed with status ${res.status}`)
+    let message = `Request failed with status ${res.status}`
+    if (typeof data?.detail === 'string') {
+      message = data.detail
+    } else if (Array.isArray(data?.detail) && data.detail.length > 0) {
+      message = data.detail.map((e) => e.msg || e.message || String(e)).join(', ')
+    } else if (res.status === 500) {
+      message = 'Server connection error. Please ensure the backend server is running and try again.'
+    }
+    const error = new Error(message)
     error.status = res.status
     error.data = data
     throw error
@@ -172,6 +180,34 @@ export async function getDoctorById(id) {
 }
 
 /**
+ * Fetch authenticated doctor profile with hospital and user details.
+ */
+export async function getMyDoctorProfile() {
+  return await request('/api/v1/doctors/me', {
+    method: 'GET',
+  })
+}
+
+/**
+ * Update authenticated doctor's profile (bio, availability, fee, available days).
+ */
+export async function updateMyDoctorProfile(data) {
+  return await request('/api/v1/doctors/me', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Fetch live authenticated doctor dashboard summary statistics.
+ */
+export async function getMyDoctorStats() {
+  return await request('/api/v1/doctors/me/stats', {
+    method: 'GET',
+  })
+}
+
+/**
  * Fetch available consultation slots for a doctor on a specific date.
  */
 export async function getDoctorSlots(doctorId, date) {
@@ -205,6 +241,8 @@ export async function getMyAppointments(params = {}) {
     method: 'GET',
   })
 }
+
+export const getAppointments = getMyAppointments
 
 /**
  * Get single appointment details by ID.
@@ -349,4 +387,44 @@ export async function getMLServiceStatus() {
     method: 'GET',
   })
 }
+
+// ---------------------------------------------------------------------------
+// Phase 6.4: Notification Services
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch paginated notifications for current authenticated user.
+ */
+export async function getNotifications(params = {}, signal = null) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      query.append(key, value)
+    }
+  })
+  const qs = query.toString()
+  return await request(`/api/v1/notifications${qs ? `?${qs}` : ''}`, {
+    method: 'GET',
+    signal: signal || undefined,
+  })
+}
+
+/**
+ * Mark a specific notification as read.
+ */
+export async function markNotificationAsRead(notificationId) {
+  return await request(`/api/v1/notifications/${notificationId}/read`, {
+    method: 'PATCH',
+  })
+}
+
+/**
+ * Mark all unread notifications as read for current user.
+ */
+export async function markAllNotificationsAsRead() {
+  return await request('/api/v1/notifications/read-all', {
+    method: 'POST',
+  })
+}
+
 

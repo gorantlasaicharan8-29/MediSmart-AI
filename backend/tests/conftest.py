@@ -36,6 +36,7 @@ if "medismart_test_db" not in str(db_mod.engine.url):
         echo=False,
         future=True,
         pool_pre_ping=True,
+        pool_recycle=1800,
     )
     db_mod.AsyncSessionLocal = async_sessionmaker(
         bind=db_mod.engine,

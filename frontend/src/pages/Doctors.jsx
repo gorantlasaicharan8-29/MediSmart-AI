@@ -1,33 +1,47 @@
 import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import DoctorCard from '../components/doctors/DoctorCard'
 import DoctorFilters from '../components/doctors/DoctorFilters'
 import BookingModal from '../components/appointments/BookingModal'
 import { getDoctors, getHospitals } from '../services/api'
+import { Button, Badge, Skeleton, EmptyState, ClinicalIcon } from '../components/ui'
 
 export default function Doctors() {
+  const [searchParams, setSearchParams] = useSearchParams()
+
   const [doctors, setDoctors] = useState([])
   const [hospitals, setHospitals] = useState([])
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState(null)
+  const [reloadKey, setReloadKey] = useState(0)
 
-  const [filters, setFilters] = useState({
-    search: '',
-    specialty: '',
-    hospital_id: '',
+  const [localFilters, setLocalFilters] = useState({
     credential_status: '',
     available_only: false,
     page: 1,
     page_size: 24,
   })
 
+  // Synchronously derive effective query filters from URL search params & local state
+  const effectiveFilters = {
+    search: searchParams.get('search') || '',
+    specialty: searchParams.get('specialty') || '',
+    hospital_id: searchParams.get('hospital_id') || '',
+    credential_status: localFilters.credential_status,
+    available_only: localFilters.available_only,
+    page: localFilters.page,
+    page_size: localFilters.page_size,
+  }
+
   // Load hospitals once on mount for filter dropdown
+
   useEffect(() => {
     let ignore = false
     const fetchHospitals = async () => {
       try {
-        const data = await getHospitals({ page_size: 100 })
+        const data = await getHospitals({ limit: 100 })
         if (!ignore && data?.items) {
           setHospitals(data.items)
         }
@@ -41,27 +55,32 @@ export default function Doctors() {
     }
   }, [])
 
-  const [reloadKey, setReloadKey] = useState(0)
-  const refreshDoctors = () => {
-    setIsLoading(true)
-    setReloadKey((k) => k + 1)
-  }
+  const {
+    search: querySearch,
+    specialty: querySpecialty,
+    hospital_id: queryHospitalId,
+    credential_status,
+    available_only,
+    page,
+    page_size,
+  } = effectiveFilters
 
-  // Load doctors whenever filters change
+  // Load doctors whenever query filters change
   useEffect(() => {
     let ignore = false
 
     const fetchDoctors = async () => {
+      setIsLoading(true)
       try {
         const params = {
-          page: filters.page,
-          page_size: filters.page_size,
+          page,
+          page_size,
         }
-        if (filters.search) params.search = filters.search
-        if (filters.specialty) params.specialty = filters.specialty
-        if (filters.hospital_id) params.hospital_id = filters.hospital_id
-        if (filters.credential_status) params.credential_status = filters.credential_status
-        if (filters.available_only) params.available_only = true
+        if (querySearch) params.search = querySearch
+        if (querySpecialty) params.specialty = querySpecialty
+        if (queryHospitalId) params.hospital_id = queryHospitalId
+        if (credential_status) params.credential_status = credential_status
+        if (available_only) params.available_only = true
 
         const res = await getDoctors(params)
         if (!ignore) {
@@ -71,7 +90,7 @@ export default function Doctors() {
         }
       } catch (err) {
         if (!ignore) {
-          setError(err.message || 'Failed to load doctors')
+          setError(err.message || 'Failed to load doctors directory.')
         }
       } finally {
         if (!ignore) {
@@ -84,11 +103,42 @@ export default function Doctors() {
     return () => {
       ignore = true
     }
-  }, [filters, reloadKey])
+  }, [
+    querySearch,
+    querySpecialty,
+    queryHospitalId,
+    credential_status,
+    available_only,
+    page,
+    page_size,
+    reloadKey,
+  ])
 
   const handleFilterChange = (newFilters) => {
-    setIsLoading(true)
-    setFilters((prev) => ({
+    const nextParams = new URLSearchParams(searchParams)
+    let paramsChanged = false
+
+    if ('search' in newFilters) {
+      if (newFilters.search) nextParams.set('search', newFilters.search)
+      else nextParams.delete('search')
+      paramsChanged = true
+    }
+    if ('specialty' in newFilters) {
+      if (newFilters.specialty) nextParams.set('specialty', newFilters.specialty)
+      else nextParams.delete('specialty')
+      paramsChanged = true
+    }
+    if ('hospital_id' in newFilters) {
+      if (newFilters.hospital_id) nextParams.set('hospital_id', newFilters.hospital_id)
+      else nextParams.delete('hospital_id')
+      paramsChanged = true
+    }
+
+    if (paramsChanged) {
+      setSearchParams(nextParams, { replace: true })
+    }
+
+    setLocalFilters((prev) => ({
       ...prev,
       ...newFilters,
       page: 1,
@@ -96,59 +146,71 @@ export default function Doctors() {
   }
 
   const handleResetFilters = () => {
-    setIsLoading(true)
-    setFilters({
-      search: '',
-      specialty: '',
-      hospital_id: '',
+    setLocalFilters({
       credential_status: '',
       available_only: false,
       page: 1,
       page_size: 24,
     })
+    setSearchParams({}, { replace: true })
   }
 
+  const refreshDoctors = () => {
+    setReloadKey((k) => k + 1)
+  }
+
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 space-y-8">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-brand-border">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-800 border border-teal-200 mb-2">
-            <span>🩺</span> Specialist Directory &amp; Appointments
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="teal" size="sm" dot>
+              Specialist Directory
+            </Badge>
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-brand-text tracking-tight">
             Consult Verified Doctors &amp; Specialists
           </h1>
-          <p className="text-sm text-slate-500 mt-1 max-w-2xl">
-            Discover leading healthcare specialists across affiliated hospitals, check verified credentials, review consultation schedules, and book direct appointments with concurrency protection.
+          <p className="text-xs sm:text-sm text-brand-muted mt-1 max-w-2xl leading-relaxed">
+            Discover leading healthcare specialists across affiliated hospitals, review verified credentials and consultation fees, and schedule direct appointments.
           </p>
         </div>
 
-        <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl font-medium shrink-0">
-          Showing <span className="font-bold text-slate-900">{doctors.length}</span> of{' '}
-          <span className="font-bold text-slate-900">{total}</span> Specialists
+        <div className="text-xs text-brand-muted bg-brand-surface border border-brand-border px-4 py-2.5 rounded-xl font-semibold shadow-clinical-xs shrink-0">
+          Showing <span className="font-bold text-brand-text">{doctors.length}</span> of{' '}
+          <span className="font-bold text-brand-primary">{total}</span> Active Profiles
         </div>
       </div>
 
       {/* Filter Bar */}
       <DoctorFilters
-        filters={filters}
+        filters={effectiveFilters}
         onChange={handleFilterChange}
         onReset={handleResetFilters}
         hospitals={hospitals}
       />
 
+
       {/* Error Alert */}
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-sm text-rose-700 flex items-center justify-between">
-          <span>{error}</span>
-          <button
-            type="button"
+        <div
+          role="alert"
+          className="p-4 rounded-2xl bg-clinical-danger-bg border border-clinical-danger-border text-xs text-clinical-danger flex items-center justify-between"
+        >
+          <div className="flex items-center gap-2">
+            <ClinicalIcon name="alert-circle" size={16} ariaHidden="true" />
+            <span>{error}</span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={refreshDoctors}
-            className="underline font-bold text-xs"
+            className="text-xs font-bold"
           >
-            Retry
-          </button>
+            Retry Search
+          </Button>
         </div>
       )}
 
@@ -156,41 +218,26 @@ export default function Doctors() {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div
-              key={i}
-              className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 animate-pulse"
-            >
-              <div className="h-4 bg-slate-200 rounded w-1/3"></div>
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-slate-200 rounded-xl"></div>
-                <div className="space-y-2 flex-1">
-                  <div className="h-4 bg-slate-200 rounded w-2/3"></div>
-                  <div className="h-3 bg-slate-200 rounded w-1/2"></div>
-                </div>
-              </div>
-              <div className="h-10 bg-slate-100 rounded-xl"></div>
-              <div className="h-8 bg-slate-200 rounded-xl"></div>
-            </div>
+            <Skeleton.Card key={i} lines={3} />
           ))}
         </div>
       ) : doctors.length === 0 ? (
         /* Empty State */
-        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-4 max-w-lg mx-auto shadow-sm">
-          <div className="w-16 h-16 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto text-2xl">
-            🔍
-          </div>
-          <h3 className="text-lg font-bold text-slate-900">No Specialists Found</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            We couldn't find any doctor matching your current filter criteria. Try clearing some filters or searching with different keywords.
-          </p>
-          <button
-            type="button"
-            onClick={handleResetFilters}
-            className="px-4 py-2 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-xl border border-teal-200 transition-colors"
-          >
-            Reset All Filters
-          </button>
-        </div>
+        <EmptyState
+          icon="stethoscope"
+          title="No Specialists Found"
+          description="We couldn't find any doctors matching your current filter criteria. Try clearing some filters or searching with different keywords."
+          action={
+            <Button
+              variant="outline"
+              size="md"
+              onClick={handleResetFilters}
+              className="text-xs font-semibold"
+            >
+              Reset All Filters
+            </Button>
+          }
+        />
       ) : (
         /* Doctor Cards Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -210,7 +257,7 @@ export default function Doctors() {
           doctor={selectedDoctorForBooking}
           onClose={() => setSelectedDoctorForBooking(null)}
           onSuccess={() => {
-            // Refresh slots if modal reopens
+            // Success handler
           }}
         />
       )}

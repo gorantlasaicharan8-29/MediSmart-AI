@@ -1,75 +1,100 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { Badge } from './ui'
 
 const CURRENT_YEAR = new Date().getFullYear()
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-slate-200 mt-auto">
+    <footer className="bg-brand-surface border-t border-brand-border mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Info */}
-          <div className="md:col-span-2 space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-teal-600 flex items-center justify-center text-white font-bold text-xs">
-                +
-              </div>
-              <span className="font-bold text-slate-900 text-base">MediSmart</span>
-            </div>
-            <p className="text-sm text-slate-500 max-w-sm leading-relaxed">
-              Smart hospital discovery, doctor appointments, and real-time digital queue management powered by wait-time intelligence.
+          <div className="md:col-span-2 space-y-3.5">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2.5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent rounded-xl"
+              aria-label="MediSmart AI Home"
+            >
+              <img
+                src="/images/medismart-icon.png"
+                alt="MediSmart AI Logo"
+                className="w-8 h-8 object-contain rounded-xl shadow-clinical-xs group-hover:scale-105 transition-transform shrink-0"
+              />
+              <span className="font-bold text-brand-text text-base tracking-tight flex items-center gap-1.5">
+                Medi<span className="text-brand-accent">Smart</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-brand-mint/80 text-brand-deep border border-teal-200/80 uppercase tracking-wide leading-none">
+                  AI
+                </span>
+              </span>
+            </Link>
+            <p className="text-xs text-brand-muted max-w-md leading-relaxed">
+              Open healthcare operations platform providing interactive hospital discovery, specialist appointment scheduling, and real-time digital queue management.
             </p>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/60 text-emerald-800 text-xs font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              FastAPI & PostgreSQL 18.6 Stack
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Badge variant="teal" size="sm" dot>
+                Smart Care. Healthier Lives.
+              </Badge>
+              <Badge variant="neutral" size="sm">
+                FastAPI Async &amp; PostgreSQL
+              </Badge>
+              <Badge variant="mint" size="sm">
+                Tailwind CSS v4 &amp; React 19
+              </Badge>
             </div>
           </div>
 
-          {/* Platform Links */}
+          {/* Platform Navigation */}
           <div>
-            <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-3">
-              Platform
+            <h4 className="text-xs font-bold text-brand-text uppercase tracking-wider mb-3">
+              Platform Discovery
             </h4>
-            <ul className="space-y-2 text-sm text-slate-600">
+            <ul className="space-y-2 text-xs text-brand-muted">
               <li>
-                <Link to="/hospitals" className="hover:text-teal-600 transition-colors">
+                <Link
+                  to="/hospitals"
+                  className="hover:text-brand-deep hover:underline transition-colors"
+                >
                   Interactive Hospital Map
                 </Link>
               </li>
               <li>
-                <Link to="/doctors" className="hover:text-teal-600 transition-colors">
-                  Find Specialists
-                </Link>
-              </li>
-              <li>
-                <Link to="/queue" className="hover:text-teal-600 transition-colors">
-                  Live Queue Tracking
-                </Link>
-              </li>
-              <li>
-                <a
-                  href="http://localhost:8000/docs"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-teal-600 transition-colors inline-flex items-center gap-1"
+                <Link
+                  to="/doctors"
+                  className="hover:text-brand-deep hover:underline transition-colors"
                 >
-                  Backend API Docs
-                  <span className="text-[10px] text-slate-400">↗</span>
-                </a>
+                  Specialist Directory
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/queue"
+                  className="hover:text-brand-deep hover:underline transition-colors"
+                >
+                  Public Live Queue
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/appointments"
+                  className="hover:text-brand-deep hover:underline transition-colors"
+                >
+                  Patient Appointments
+                </Link>
               </li>
             </ul>
           </div>
 
-          {/* Notice & Disclaimer */}
+          {/* System Transparency & Disclaimer */}
           <div>
-            <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-3">
-              Demonstration Notice
+            <h4 className="text-xs font-bold text-brand-text uppercase tracking-wider mb-3">
+              Demonstration &amp; Privacy
             </h4>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              This system uses <strong className="text-slate-700">[SYNTHETIC DATA]</strong> for clinical and hospital simulations. No real patient data is stored.
+            <p className="text-xs text-brand-muted leading-relaxed">
+              MediSmart operates on demonstration simulation records. Public queue displays do not expose protected health information or personal identities.
             </p>
-            <div className="mt-3 text-xs text-slate-400">
-              MediSmart Platform &copy; {CURRENT_YEAR}
+            <div className="mt-4 pt-3 border-t border-brand-border/60 text-[11px] text-brand-muted/70">
+              MediSmart AI &copy; {CURRENT_YEAR}. All rights reserved.
             </div>
           </div>
         </div>

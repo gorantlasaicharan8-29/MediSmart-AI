@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { predictNoShow } from '../../services/api'
+import { Badge, ClinicalIcon } from '../ui'
 
 export default function NoShowRiskBadge({ appointment, priorStats = null }) {
   const [prediction, setPrediction] = useState(null)
@@ -103,28 +104,25 @@ export default function NoShowRiskBadge({ appointment, priorStats = null }) {
 
   if (isLoading) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-400 border border-slate-200 animate-pulse">
-        <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-        AI Risk Analysis...
-      </span>
+      <Badge variant="neutral" size="sm" className="animate-pulse">
+        <ClinicalIcon name="clock" size={10} ariaHidden="true" />
+        <span className="ml-1 text-[10px]">AI Risk Analysis...</span>
+      </Badge>
     )
   }
 
   const { risk_band, no_show_probability, decision_threshold, model_name } = prediction
   const pct = Math.round(no_show_probability * 100)
 
-  let badgeColor = 'bg-teal-50 text-teal-700 border-teal-200'
-  let dotColor = 'bg-teal-500'
-  let label = 'Low'
+  let badgeVariant = 'teal'
+  let label = 'Low Risk'
 
   if (risk_band === 'high') {
-    badgeColor = 'bg-rose-50 text-rose-700 border-rose-200'
-    dotColor = 'bg-rose-500'
-    label = 'Elevated'
+    badgeVariant = 'danger'
+    label = 'Elevated Risk'
   } else if (risk_band === 'moderate') {
-    badgeColor = 'bg-amber-50 text-amber-700 border-amber-200'
-    dotColor = 'bg-amber-500'
-    label = 'Moderate'
+    badgeVariant = 'warning'
+    label = 'Moderate Risk'
   }
 
   return (
@@ -132,40 +130,59 @@ export default function NoShowRiskBadge({ appointment, priorStats = null }) {
       <button
         type="button"
         onClick={() => setShowTooltip((prev) => !prev)}
-        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border transition-all cursor-pointer ${badgeColor}`}
-        title="Click for synthetic ML prediction details"
+        className="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent rounded-full"
+        title="View synthetic ML attendance prediction details"
+        aria-expanded={showTooltip}
       >
-        <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`}></span>
-        <span>Attendance Risk: {label} ({pct}%)</span>
-        <span className="text-[9px] opacity-75 font-mono">ⓘ</span>
+        <Badge
+          variant={badgeVariant}
+          size="sm"
+          dot={true}
+          className="hover:opacity-90 transition-opacity"
+        >
+          <span>Attendance: {label} ({pct}%)</span>
+          <ClinicalIcon name="info" size={11} className="ml-1 opacity-70" ariaHidden="true" />
+        </Badge>
       </button>
 
       {/* Popover Card */}
       {showTooltip && (
-        <div className="absolute left-0 mt-1 z-30 w-72 p-3 bg-white rounded-xl shadow-lg border border-slate-200 text-xs space-y-2 animate-in fade-in zoom-in-95 duration-100">
-          <div className="flex items-center justify-between font-bold text-slate-800 pb-1.5 border-b border-slate-100">
-            <span>🤖 Attendance Predictability</span>
+        <div
+          role="dialog"
+          aria-label="Attendance Predictability Details"
+          className="absolute left-0 mt-2 z-30 w-72 p-3.5 bg-brand-surface rounded-2xl shadow-clinical-lg border border-brand-border text-xs space-y-2.5 animate-in fade-in zoom-in-95 duration-100"
+        >
+          <div className="flex items-center justify-between font-bold text-brand-text pb-1.5 border-b border-brand-border/70">
+            <div className="flex items-center gap-1.5">
+              <ClinicalIcon name="sparkles" size={14} className="text-brand-accent" ariaHidden="true" />
+              <span>Attendance Predictability</span>
+            </div>
             <button
               type="button"
               onClick={() => setShowTooltip(false)}
-              className="text-slate-400 hover:text-slate-600 text-sm leading-none p-0.5"
+              className="text-brand-muted hover:text-brand-text p-0.5 rounded transition-colors"
+              aria-label="Close prediction details"
             >
-              ✕
+              <ClinicalIcon name="x" size={14} ariaHidden="true" />
             </button>
           </div>
-          <div className="space-y-1 text-[11px] text-slate-600">
-            <p>
-              Probability of absence: <span className="font-bold text-slate-800">{pct}%</span>
-            </p>
-            <p>
-              Risk band: <span className="font-semibold capitalize text-slate-800">{risk_band}</span>
-            </p>
-            <p className="text-[10px] text-slate-400">
-              Evaluated via {model_name} (Operating threshold: {decision_threshold.toFixed(2)})
+
+          <div className="space-y-1 text-[11px] text-brand-muted">
+            <div className="flex justify-between">
+              <span>Estimated absence probability:</span>
+              <span className="font-bold text-brand-text">{pct}%</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Classified risk tier:</span>
+              <span className="font-semibold capitalize text-brand-text">{risk_band}</span>
+            </div>
+            <p className="text-[10px] text-brand-muted pt-1">
+              Evaluated via {model_name} (Threshold: {decision_threshold.toFixed(2)})
             </p>
           </div>
-          <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-[10px] text-amber-900 leading-snug">
-            ⚠️ <strong>Synthetic Demonstration:</strong> Generated for scheduling flow simulation. Not a clinical assessment.
+
+          <div className="p-2 rounded-xl bg-clinical-warning-bg border border-clinical-warning-border text-[10px] text-clinical-warning leading-snug">
+            <strong>Synthetic Demonstration:</strong> Generated for scheduling flow simulation. Not a clinical assessment.
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { getHospitals } from '../services/api'
 import { useAuth } from '../context/useAuth'
 import HospitalMap from '../components/map/HospitalMap'
@@ -6,10 +7,17 @@ import HospitalCard from '../components/hospitals/HospitalCard'
 import HospitalFilters from '../components/hospitals/HospitalFilters'
 import HospitalDetailModal from '../components/hospitals/HospitalDetailModal'
 import CreateHospitalModal from '../components/hospitals/CreateHospitalModal'
+import { Button, Badge, Skeleton, EmptyState, ClinicalIcon } from '../components/ui'
 
 export default function Hospitals() {
   const { user } = useAuth()
-  const canManageHospitals = user && (user.role === 'hospital_admin' || user.role === 'system_admin')
+  const canManageHospitals =
+    user && (user.role === 'hospital_admin' || user.role === 'system_admin')
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const urlSearch = searchParams.get('search') || ''
+  const selectedCity = searchParams.get('city') || ''
+  const selectedSpecialty = searchParams.get('specialty') || ''
 
   const [hospitals, setHospitals] = useState([])
   const [totalCount, setTotalCount] = useState(0)
@@ -17,11 +25,8 @@ export default function Hospitals() {
   const [errorMessage, setErrorMessage] = useState(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  // Filters State
-  const [search, setSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [selectedCity, setSelectedCity] = useState('')
-  const [selectedSpecialty, setSelectedSpecialty] = useState('')
+  // Local search text input (debounces into searchParams)
+  const [searchInput, setSearchInput] = useState(urlSearch)
   const [onlyMapped, setOnlyMapped] = useState(false)
 
   // Selection & Modal States
@@ -30,25 +35,34 @@ export default function Hospitals() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [mobileView, setMobileView] = useState('list') // 'list' | 'map'
 
-  // Debounce search input
+  // Debounce search input to URL query parameters
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(search)
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        if (searchInput.trim()) {
+          next.set('search', searchInput.trim())
+        } else {
+          next.delete('search')
+        }
+        return next
+      }, { replace: true })
     }, 350)
     return () => clearTimeout(timer)
-  }, [search])
+  }, [searchInput, setSearchParams])
 
-  // Fetch hospitals from API with cancellation
+  // Fetch hospitals from API
   useEffect(() => {
     let ignore = false
 
     const loadHospitals = async () => {
+      setIsLoading(true)
       try {
         const params = {
           limit: 100,
           offset: 0,
         }
-        if (debouncedSearch) params.search = debouncedSearch
+        if (urlSearch) params.search = urlSearch
         if (selectedCity) params.city = selectedCity
         if (selectedSpecialty) params.specialty = selectedSpecialty
         if (onlyMapped) params.has_coords = true
@@ -77,9 +91,9 @@ export default function Hospitals() {
     return () => {
       ignore = true
     }
-  }, [debouncedSearch, selectedCity, selectedSpecialty, onlyMapped, refreshTrigger])
+  }, [urlSearch, selectedCity, selectedSpecialty, onlyMapped, refreshTrigger])
 
-  // Compute unique cities for the dropdown
+  // Compute unique cities for dropdown
   const uniqueCities = useMemo(() => {
     const citySet = new Set(hospitals.map((h) => h.city).filter(Boolean))
     return Array.from(citySet).sort()
@@ -91,13 +105,30 @@ export default function Hospitals() {
 
   const unmappedCount = hospitals.length - mappedCount
 
-  const handleResetFilters = () => {
-    setSearch('')
-    setDebouncedSearch('')
-    setSelectedCity('')
-    setSelectedSpecialty('')
-    setOnlyMapped(false)
+  const handleCityChange = (city) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (city) next.set('city', city)
+      else next.delete('city')
+      return next
+    }, { replace: true })
   }
+
+  const handleSpecialtyChange = (spec) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (spec) next.set('specialty', spec)
+      else next.delete('specialty')
+      return next
+    }, { replace: true })
+  }
+
+  const handleResetFilters = () => {
+    setSearchInput('')
+    setOnlyMapped(false)
+    setSearchParams({}, { replace: true })
+  }
+
 
   const handleHospitalCreated = (newHospital) => {
     setRefreshTrigger((prev) => prev + 1)
@@ -107,64 +138,68 @@ export default function Hospitals() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-brand-border">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Hospital Discovery</h1>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-teal-50 border border-teal-200 text-teal-800 font-semibold">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-brand-text tracking-tight">
+              Hospital Discovery
+            </h1>
+            <Badge variant="teal" size="sm" dot>
               Live Directory
-            </span>
+            </Badge>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-brand-muted mt-1">
             Explore verified healthcare centers and clinical specialties on OpenStreetMap
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Quick Metrics */}
-          <div className="hidden lg:flex items-center gap-2 text-xs font-medium text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
+          <div className="hidden lg:flex items-center gap-2.5 text-xs font-semibold text-brand-muted bg-brand-surface border border-brand-border px-3.5 py-2 rounded-xl shadow-clinical-xs">
             <span>{totalCount} Total Facilities</span>
-            <span className="text-slate-300">•</span>
-            <span className="text-teal-600 font-semibold">{mappedCount} GPS Mapped</span>
+            <span className="text-brand-border">&bull;</span>
+            <span className="text-brand-accent">{mappedCount} GPS Geocoded</span>
           </div>
 
           {/* Admin Facility Button */}
           {canManageHospitals && (
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              size="md"
               onClick={() => setIsCreateOpen(true)}
-              className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-colors"
+              leftIcon={<ClinicalIcon name="hospital" size={16} ariaHidden="true" />}
+              className="text-xs font-semibold"
             >
-              <span>+</span>
-              <span>Add Facility</span>
-            </button>
+              Add Hospital Facility
+            </Button>
           )}
         </div>
       </div>
 
       {/* Filter Component */}
       <HospitalFilters
-        search={search}
-        onSearchChange={setSearch}
+        search={searchInput}
+        onSearchChange={setSearchInput}
         selectedCity={selectedCity}
-        onCityChange={setSelectedCity}
+        onCityChange={handleCityChange}
         selectedSpecialty={selectedSpecialty}
-        onSpecialtyChange={setSelectedSpecialty}
+        onSpecialtyChange={handleSpecialtyChange}
         onlyMapped={onlyMapped}
         onOnlyMappedChange={setOnlyMapped}
         cities={uniqueCities}
         onReset={handleResetFilters}
       />
 
+
       {/* Mobile View Toggle Switcher */}
-      <div className="flex md:hidden bg-slate-100 p-1 rounded-xl">
+      <div className="flex md:hidden bg-brand-ground p-1 rounded-xl border border-brand-border">
         <button
           type="button"
           onClick={() => setMobileView('list')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
             mobileView === 'list'
-              ? 'bg-white text-slate-900 shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900'
+              ? 'bg-brand-surface text-brand-deep shadow-clinical-xs'
+              : 'text-brand-muted hover:text-brand-text'
           }`}
         >
           Directory List ({hospitals.length})
@@ -172,10 +207,10 @@ export default function Hospitals() {
         <button
           type="button"
           onClick={() => setMobileView('map')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
             mobileView === 'map'
-              ? 'bg-white text-slate-900 shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900'
+              ? 'bg-brand-surface text-brand-deep shadow-clinical-xs'
+              : 'text-brand-muted hover:text-brand-text'
           }`}
         >
           Interactive Map ({mappedCount})
@@ -184,8 +219,22 @@ export default function Hospitals() {
 
       {/* Error Message */}
       {errorMessage && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
-          ⚠️ {errorMessage}
+        <div
+          role="alert"
+          className="p-4 rounded-2xl bg-clinical-danger-bg border border-clinical-danger-border text-xs text-clinical-danger flex items-center justify-between"
+        >
+          <div className="flex items-center gap-2">
+            <ClinicalIcon name="alert-circle" size={16} ariaHidden="true" />
+            <span>{errorMessage}</span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setRefreshTrigger((prev) => prev + 1)}
+            className="text-xs font-bold"
+          >
+            Retry
+          </Button>
         </div>
       )}
 
@@ -199,36 +248,41 @@ export default function Hospitals() {
         >
           {/* Missing Location Callout */}
           {unmappedCount > 0 && !onlyMapped && (
-            <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 text-[11px] text-amber-800 flex items-start gap-2.5">
-              <span className="text-amber-600 font-bold">ℹ</span>
+            <div className="p-3.5 rounded-xl bg-brand-ground border border-brand-border text-[11px] text-brand-muted flex items-start gap-2.5">
+              <ClinicalIcon
+                name="info"
+                size={14}
+                className="text-brand-accent shrink-0 mt-0.5"
+                ariaHidden="true"
+              />
               <div>
-                <span className="font-semibold">{unmappedCount} facility</span> listed without physical coordinates. These facilities appear in the list directory with contact details.
+                <span className="font-bold text-brand-text">{unmappedCount} facility</span> listed with contact information prior to GPS coordinates completion.
               </div>
             </div>
           )}
 
           {isLoading ? (
-            <div className="p-12 text-center space-y-3 bg-white rounded-2xl border border-slate-200">
-              <div className="w-8 h-8 border-3 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-xs text-slate-500 font-medium">Loading hospital directory...</p>
+            <div className="space-y-3.5">
+              <Skeleton.Card lines={2} />
+              <Skeleton.Card lines={2} />
+              <Skeleton.Card lines={2} />
             </div>
           ) : hospitals.length === 0 ? (
-            <div className="p-10 text-center space-y-3 bg-white rounded-2xl border border-slate-200">
-              <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-xl font-bold">
-                🏥
-              </div>
-              <h3 className="text-sm font-bold text-slate-800">No Hospitals Found</h3>
-              <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                No healthcare centers matched your selected filters or search terms.
-              </p>
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="text-xs font-semibold text-teal-600 hover:underline pt-2"
-              >
-                Reset All Filters
-              </button>
-            </div>
+            <EmptyState
+              icon="hospital"
+              title="No Hospitals Found"
+              description="No healthcare centers matched your selected filters or search terms. Try resetting your search or selecting another city."
+              action={
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={handleResetFilters}
+                  className="text-xs font-semibold"
+                >
+                  Reset All Filters
+                </Button>
+              }
+            />
           ) : (
             hospitals.map((hospital) => (
               <HospitalCard
@@ -249,7 +303,7 @@ export default function Hospitals() {
 
         {/* Right Column: Interactive Leaflet Map (Sticky on Desktop) */}
         <div
-          className={`md:col-span-6 lg:col-span-7 sticky top-20 h-[520px] sm:h-[620px] ${
+          className={`md:col-span-6 lg:col-span-7 sticky top-20 h-[480px] sm:h-[580px] md:h-[640px] ${
             mobileView === 'list' ? 'hidden md:block' : 'block'
           }`}
         >

@@ -1,13 +1,19 @@
 import logging
 import secrets
 import uuid
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+try:
+    from zoneinfo import ZoneInfo
+    CLINIC_TZ = ZoneInfo("Asia/Kolkata")
+except Exception:
+    CLINIC_TZ = timezone(timedelta(hours=5, minutes=30), name="Asia/Kolkata")
 
 from app.core.database import get_db
 from app.core.deps import get_current_active_user
@@ -21,6 +27,7 @@ from app.schemas.appointment import (
     AppointmentListResponse,
     AppointmentResponse,
 )
+from app.services.notification import notification_service
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +69,11 @@ async def book_appointment(
       Catches duplicate slot conflicts and translates safely to 409 Conflict.
     - Does not expose raw database exceptions to clients.
     """
+    clinic_now = datetime.now(CLINIC_TZ)
+    clinic_today = clinic_now.date()
+
     # 1. Date Validation
-    if data.appointment_date < date.today():
+    if data.appointment_date < clinic_today:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot book an appointment for a past date",
@@ -183,12 +193,38 @@ async def book_appointment(
     result = await db.execute(full_appt_query)
     created_appt = result.scalar_one()
 
+    # Generate patient notification upon successful booking (Fault-isolated)
+    doc_name = (
+        created_appt.doctor.user.full_name
+        if created_appt.doctor and created_appt.doctor.user
+        else None
+    )
+    hosp_name = (
+        created_appt.hospital.name
+        if created_appt.hospital
+        else None
+    )
+    try:
+        await notification_service.create_appointment_booked_notification(
+            db=db,
+            appointment=created_appt,
+            doctor_name=doc_name,
+            hospital_name=hosp_name,
+            auto_commit=False,
+        )
+    except Exception as notif_err:
+        logger.error(
+            f"Failed to generate booking notification for appointment {created_appt.id}: {notif_err}",
+            exc_info=True,
+        )
+
     return created_appt
 
 
 @router.get("", response_model=AppointmentListResponse, summary="List appointments with role isolation")
 async def list_appointments(
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by appointment status"),
+    date_filter: Optional[date] = Query(None, alias="date", description="Filter by consultation date (YYYY-MM-DD)"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     db: AsyncSession = Depends(get_db),
@@ -216,6 +252,9 @@ async def list_appointments(
 
     if status_filter:
         query = query.where(Appointment.status == status_filter)
+
+    if date_filter:
+        query = query.where(Appointment.appointment_date == date_filter)
 
     count_query = select(func.count()).select_from(query.subquery())
     total_result = await db.execute(count_query)
@@ -374,7 +413,21 @@ async def cancel_appointment(
     appointment.status = "cancelled"
     appointment.cancellation_reason = reason
 
-    # Reload relationships for response
+    # Generate patient notification upon successful cancellation (Fault-isolated)
+    try:
+        await notification_service.create_appointment_cancelled_notification(
+            db=db,
+            appointment=appointment,
+            reason=reason,
+            auto_commit=False,
+        )
+    except Exception as notif_err:
+        logger.error(
+            f"Failed to generate cancellation notification for appointment {appointment.id}: {notif_err}",
+            exc_info=True,
+        )
+
+    # Reload relationships and populate updated attributes for response
     full_appt_query = (
         select(Appointment)
         .where(Appointment.id == appointment.id)
@@ -384,6 +437,7 @@ async def cancel_appointment(
             selectinload(Appointment.doctor).selectinload(Doctor.hospital),
             selectinload(Appointment.hospital),
         )
+        .execution_options(populate_existing=True)
     )
     res = await db.execute(full_appt_query)
     updated_appt = res.scalar_one()

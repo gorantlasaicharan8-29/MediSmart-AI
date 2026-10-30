@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.models.doctor import Doctor
     from app.models.appointment import Appointment
     from app.models.queue import QueueEntry
+    from app.models.notification import Notification
 
 
 class User(Base, UUIDMixin, TimestampMixin):
@@ -49,6 +50,11 @@ class User(Base, UUIDMixin, TimestampMixin):
     queue_entries: Mapped[List["QueueEntry"]] = relationship(
         "QueueEntry",
         back_populates="patient",
+        cascade="all, delete-orphan",
+    )
+    notifications: Mapped[List["Notification"]] = relationship(
+        "Notification",
+        back_populates="user",
         cascade="all, delete-orphan",
     )
 

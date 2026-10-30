@@ -20,6 +20,9 @@ from app.schemas.doctor import (
     DoctorListResponse,
     DoctorSlot,
     DoctorSlotsDayResponse,
+    DoctorProfileSelfUpdate,
+    DoctorNextAppointmentSummary,
+    DoctorDashboardStatsResponse,
 )
 from app.schemas.appointment import (
     AppointmentCreate,
@@ -42,6 +45,11 @@ from app.schemas.ml import (
     WaitingTimePredictionResponse,
     NoShowPredictionRequest,
     NoShowPredictionResponse,
+)
+from app.schemas.notification import (
+    NotificationResponse,
+    NotificationListResponse,
+    NotificationReadAllResponse,
 )
 
 __all__ = [
@@ -76,4 +84,7 @@ __all__ = [
     "WaitingTimePredictionResponse",
     "NoShowPredictionRequest",
     "NoShowPredictionResponse",
+    "NotificationResponse",
+    "NotificationListResponse",
+    "NotificationReadAllResponse",
 ]

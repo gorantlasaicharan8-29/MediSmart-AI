@@ -24,3 +24,6 @@ scikit-learn>=1.5.0
 joblib>=1.4.0
 xgboost>=2.1.0
 scipy>=1.13.0
+
+# Real-time WebSocket Multi-Worker Pub/Sub
+redis>=5.0.0

@@ -1,12 +1,18 @@
 import React, { useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import { createHospitalIcon } from './leafletConfig'
+import { Badge, Button } from '../ui'
 
-// Helper component to center and fit bounds on hospital changes
+// Helper component to center, fit bounds, and invalidate size on dimensions/container change
 function MapController({ selectedHospital, hospitals }) {
   const map = useMap()
 
   useEffect(() => {
+    // Invalidate map size after DOM layout settles (e.g. mobile drawer/tab switch)
+    const timer = setTimeout(() => {
+      map.invalidateSize()
+    }, 150)
+
     if (selectedHospital && selectedHospital.latitude && selectedHospital.longitude) {
       map.flyTo([selectedHospital.latitude, selectedHospital.longitude], 14, {
         duration: 1.2,
@@ -20,6 +26,8 @@ function MapController({ selectedHospital, hospitals }) {
         map.fitBounds(validCoords, { padding: [40, 40], maxZoom: 13 })
       }
     }
+
+    return () => clearTimeout(timer)
   }, [selectedHospital, hospitals, map])
 
   return null
@@ -43,13 +51,13 @@ export default function HospitalMap({
       : [22.3511, 78.6677]
 
   return (
-    <div className="relative w-full h-full min-h-[420px] rounded-2xl overflow-hidden border border-slate-200 shadow-xs bg-slate-100 z-10">
+    <div className="relative w-full h-full min-h-[380px] sm:min-h-[460px] md:min-h-[580px] rounded-2xl overflow-hidden border border-brand-border shadow-clinical-xs bg-brand-ground z-10 flex flex-col">
       <MapContainer
         center={defaultCenter}
         zoom={mappedHospitals.length > 0 ? 5 : 4}
-        scrollWheelZoom={true}
-        className="w-full h-full min-h-[420px]"
-        style={{ width: '100%', height: '100%' }}
+        scrollWheelZoom={false}
+        className="w-full flex-1"
+        style={{ width: '100%', height: '100%', minHeight: '380px' }}
       >
         {/* OpenStreetMap Tile Layer with Mandatory Copyright Attribution */}
         <TileLayer
@@ -73,50 +81,60 @@ export default function HospitalMap({
               }}
             >
               <Popup className="hospital-popup">
-                <div className="p-1 space-y-2 max-w-xs">
-                  <div className="flex items-start justify-between gap-2">
-                    <h4 className="text-sm font-bold text-slate-900 leading-tight">
+                <div className="p-1 space-y-2 max-w-[260px] font-sans">
+                  <div className="space-y-1">
+                    <Badge
+                      variant={hospital.data_source === 'verified' ? 'teal' : 'neutral'}
+                      size="sm"
+                    >
+                      {hospital.data_source === 'verified' ? 'Verified Facility' : 'Sample Record'}
+                    </Badge>
+                    <h4 className="text-sm font-bold text-brand-text leading-tight pt-1">
                       {hospital.name}
                     </h4>
+                    <p className="text-xs text-brand-muted line-clamp-2">
+                      {hospital.address}, {hospital.city}
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-600 line-clamp-2">{hospital.address}, {hospital.city}</p>
 
                   {/* Specialty chips */}
                   {hospital.specialties && hospital.specialties.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-1">
+                    <div className="flex flex-wrap gap-1 pt-0.5">
                       {hospital.specialties.slice(0, 3).map((spec, i) => (
                         <span
                           key={i}
-                          className="text-[10px] px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 font-medium"
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-brand-mint text-brand-deep font-semibold"
                         >
                           {spec}
                         </span>
                       ))}
                       {hospital.specialties.length > 3 && (
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-brand-muted">
                           +{hospital.specialties.length - 3} more
                         </span>
                       )}
                     </div>
                   )}
 
-                  <div className="pt-2 flex items-center justify-between border-t border-slate-100">
-                    <span
-                      className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
-                        hospital.data_source === 'verified'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-amber-50 text-amber-700'
-                      }`}
-                    >
-                      {hospital.data_source}
-                    </span>
-                    <button
-                      type="button"
+                  <div className="pt-2 flex items-center justify-between border-t border-brand-border/70">
+                    {hospital.phone ? (
+                      <span className="text-[11px] text-brand-muted font-medium truncate max-w-[120px]">
+                        {hospital.phone}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-brand-muted/70">
+                        {hospital.city}, {hospital.state}
+                      </span>
+                    )}
+
+                    <Button
+                      variant="link"
+                      size="sm"
                       onClick={() => onOpenDetails(hospital)}
-                      className="text-xs font-semibold text-teal-700 hover:text-teal-800 hover:underline"
+                      className="text-xs font-bold text-brand-accent hover:text-brand-deep p-0"
                     >
-                      View Details →
-                    </button>
+                      View Details &rarr;
+                    </Button>
                   </div>
                 </div>
               </Popup>
@@ -126,14 +144,14 @@ export default function HospitalMap({
       </MapContainer>
 
       {/* Floating Map Legend */}
-      <div className="absolute bottom-3 left-3 z-[1000] bg-white/95 backdrop-blur-xs px-3 py-2 rounded-xl border border-slate-200/90 shadow-sm text-[11px] flex items-center gap-3">
+      <div className="absolute bottom-3 left-3 z-[1000] bg-brand-surface/95 backdrop-blur-xs px-3 py-2 rounded-xl border border-brand-border shadow-clinical-sm text-[11px] flex items-center gap-3 select-none">
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-teal-600"></span>
-          <span className="text-slate-600 font-medium">Verified Facility</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-brand-primary" aria-hidden="true"></span>
+          <span className="text-brand-text font-medium">Verified Partner</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-          <span className="text-slate-600 font-medium">Sample / Unverified</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-600" aria-hidden="true"></span>
+          <span className="text-brand-muted font-medium">Sample / Demo</span>
         </div>
       </div>
     </div>

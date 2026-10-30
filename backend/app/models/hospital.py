@@ -65,6 +65,7 @@ class Hospital(Base, UUIDMixin, TimestampMixin):
         back_populates="hospital",
         cascade="all, delete-orphan",
     )
+    # pyrefly: ignore[unknown-name]
     hospital_admins: Mapped[List["User"]] = relationship(
         "User",
         back_populates="hospital",

@@ -107,14 +107,14 @@ async def login(
         hospital_id=user.hospital_id,
     )
 
-    # Set secure HttpOnly cookie for browser transport
+    # Set secure HttpOnly cookie for browser transport (dynamic secure flag based on environment)
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         samesite="lax",
-        secure=False,  # localhost dev; set to True in production HTTPS
+        secure=settings.COOKIE_SECURE,
         path="/",
     )
 
@@ -136,6 +136,7 @@ async def logout(response: Response):
         path="/",
         httponly=True,
         samesite="lax",
+        secure=settings.COOKIE_SECURE,
     )
     return {"message": "Session terminated successfully"}
 

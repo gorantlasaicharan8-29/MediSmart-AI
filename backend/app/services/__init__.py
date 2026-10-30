@@ -15,4 +15,13 @@ __all__ = [
     "ModelInferenceError",
     "ModelNotLoadedError",
     "ml_prediction_service",
+    "NotificationService",
+    "NotificationResult",
+    "notification_service",
 ]
+
+from app.services.notification import (
+    NotificationResult,
+    NotificationService,
+    notification_service,
+)

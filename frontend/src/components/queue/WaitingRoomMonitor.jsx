@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getDoctorPublicBoard, getDoctors } from '../../services/api'
 import { useQueueSocket } from '../../hooks/useQueueSocket'
 import { playChime } from '../../utils/sound'
+import { ClinicalIcon } from '../ui'
 
 export default function WaitingRoomMonitor({ initialDoctorId = null, standalone = false }) {
   const { doctorId: routeDoctorId } = useParams()
@@ -102,7 +103,7 @@ export default function WaitingRoomMonitor({ initialDoctorId = null, standalone 
       ) {
         // Trigger pulse highlight and chime
         setJustCalledFlash(true)
-        setTimeout(() => setJustCalledFlash(false), 3000)
+        setTimeout(() => setJustCalledFlash(false), 3500)
         if (!isAudioMuted) {
           playChime('call')
         }
@@ -153,22 +154,22 @@ export default function WaitingRoomMonitor({ initialDoctorId = null, standalone 
       className={`min-h-[85vh] flex flex-col justify-between transition-colors ${
         standalone
           ? 'bg-slate-950 text-slate-100 p-4 sm:p-8 min-h-screen'
-          : 'bg-slate-900 text-slate-100 rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800'
+          : 'bg-slate-900 text-slate-100 rounded-3xl p-6 sm:p-8 shadow-clinical-lg border border-slate-800'
       }`}
     >
       {/* Top Bar: Clinic Name, Clock, Controls */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center justify-center text-2xl font-black shrink-0">
-            🏥
+          <div className="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center justify-center shrink-0">
+            <ClinicalIcon name="hospital" size={24} ariaHidden="true" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-teal-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-teal-400">
                 Waiting Room Display
               </span>
               <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
                   isLive
                     ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                     : connectionMode === 'polling'
@@ -185,7 +186,7 @@ export default function WaitingRoomMonitor({ initialDoctorId = null, standalone 
                       : 'bg-slate-500'
                   }`}
                 />
-                {isLive ? 'LIVE' : connectionMode === 'polling' ? 'POLLING (10s)' : 'CONNECTING'}
+                {isLive ? 'LIVE STREAM' : connectionMode === 'polling' ? 'POLLING (10s)' : 'CONNECTING'}
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-0.5">
@@ -216,12 +217,12 @@ export default function WaitingRoomMonitor({ initialDoctorId = null, standalone 
               )}
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 text-xs">
-              ▼
+              <ClinicalIcon name="chevron-down" size={12} ariaHidden="true" />
             </div>
           </div>
 
           {/* Clock */}
-          <div className="font-mono text-base sm:text-lg font-bold text-slate-300 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 tracking-wider">
+          <div className="font-mono text-base sm:text-lg font-bold text-slate-200 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 tracking-wider">
             {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </div>
 
@@ -229,34 +230,37 @@ export default function WaitingRoomMonitor({ initialDoctorId = null, standalone 
           <button
             type="button"
             onClick={() => setIsAudioMuted(!isAudioMuted)}
-            className={`p-2 rounded-xl text-xs font-semibold border transition-all ${
+            className={`p-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
               isAudioMuted
                 ? 'bg-slate-800 text-slate-400 border-slate-700'
-                : 'bg-teal-500/10 text-teal-300 border-teal-500/30'
+                : 'bg-teal-500/15 text-teal-300 border-teal-500/30'
             }`}
-            title={isAudioMuted ? 'Unmute Announcement Chime' : 'Mute Announcement Chime'}
+            title={isAudioMuted ? 'Unmute Audio Chime' : 'Mute Audio Chime'}
+            aria-label={isAudioMuted ? 'Unmute audio chime' : 'Mute audio chime'}
           >
-            {isAudioMuted ? '🔇' : '🔔'}
+            <ClinicalIcon name={isAudioMuted ? 'alert-triangle' : 'sparkles'} size={16} ariaHidden="true" />
           </button>
 
           {/* Fullscreen Button */}
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all text-xs font-semibold"
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all text-xs font-semibold cursor-pointer"
             title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen TV Mode'}
+            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
           >
-            {isFullscreen ? '↙️' : '⛶'}
+            <ClinicalIcon name="chevron-right" size={16} ariaHidden="true" />
           </button>
 
           {/* Refresh Manual Trigger */}
           <button
             type="button"
             onClick={() => refresh()}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all text-xs font-semibold"
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all text-xs font-semibold cursor-pointer"
             title="Refresh Display"
+            aria-label="Refresh waiting room display"
           >
-            ↻
+            <ClinicalIcon name="refresh" size={16} ariaHidden="true" />
           </button>
         </div>
       </div>
@@ -264,30 +268,30 @@ export default function WaitingRoomMonitor({ initialDoctorId = null, standalone 
       {/* Main Content Area */}
       {boardLoading && !boardData ? (
         <div className="py-24 text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="w-10 h-10 border-3 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm font-semibold text-slate-400">Loading waiting room display...</p>
         </div>
       ) : boardError && !boardData ? (
         <div className="py-20 text-center space-y-4 max-w-md mx-auto">
-          <div className="w-16 h-16 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center text-2xl mx-auto border border-rose-500/20">
-            ⚠️
+          <div className="w-14 h-14 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center mx-auto border border-rose-500/20">
+            <ClinicalIcon name="alert-circle" size={28} ariaHidden="true" />
           </div>
           <h3 className="text-lg font-bold text-white">Display Unavailable</h3>
-          <p className="text-sm text-slate-400">{boardError}</p>
+          <p className="text-xs text-slate-400">{boardError}</p>
           <button
             type="button"
             onClick={() => refresh()}
-            className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition-all"
+            className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition-all cursor-pointer"
           >
             Retry Connection
           </button>
         </div>
       ) : (
-        <div className="py-6 space-y-8 flex-1">
+        <div className="py-6 space-y-6 flex-1">
           {/* Doctor Banner */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 rounded-2xl bg-slate-800/50 border border-slate-800">
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-teal-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-teal-400">
                 Consulting Room
               </span>
               <h2 className="text-lg sm:text-xl font-black text-white">
@@ -309,7 +313,7 @@ export default function WaitingRoomMonitor({ initialDoctorId = null, standalone 
           </div>
 
           {/* Grid Layout: Left Hero (Now Serving) | Right (Next In Line) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* HERO CARD: CURRENTLY IN CONSULTATION (7 cols) */}
             <div
               className={`lg:col-span-7 rounded-3xl p-8 sm:p-10 border transition-all duration-500 flex flex-col justify-between min-h-[380px] shadow-2xl relative overflow-hidden ${
@@ -331,7 +335,7 @@ export default function WaitingRoomMonitor({ initialDoctorId = null, standalone 
                 </div>
                 {justCalledFlash && (
                   <span className="px-3 py-1 rounded-full bg-teal-400/20 text-teal-300 text-xs font-black uppercase tracking-wider animate-pulse border border-teal-400/30">
-                    📢 Called Just Now
+                    Called Just Now
                   </span>
                 )}
               </div>
@@ -367,7 +371,7 @@ export default function WaitingRoomMonitor({ initialDoctorId = null, standalone 
             </div>
 
             {/* UPCOMING WAITING QUEUE (5 cols) */}
-            <div className="lg:col-span-5 rounded-3xl bg-slate-800/40 border border-slate-800 p-6 sm:p-7 space-y-5 shadow-lg">
+            <div className="lg:col-span-5 rounded-3xl bg-slate-800/40 border border-slate-800 p-6 sm:p-7 space-y-4 shadow-lg">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-black uppercase tracking-widest text-slate-300">
@@ -377,45 +381,47 @@ export default function WaitingRoomMonitor({ initialDoctorId = null, standalone 
                     {waitingList.length}
                   </span>
                 </div>
-                <span className="text-[11px] text-slate-500 font-medium">Estimated Wait Time</span>
+                <span className="text-[11px] text-slate-500 font-medium">Estimated Wait</span>
               </div>
 
               {waitingList.length === 0 ? (
                 <div className="py-16 text-center space-y-2">
-                  <div className="text-3xl text-slate-600">✓</div>
+                  <div className="w-10 h-10 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center mx-auto">
+                    <ClinicalIcon name="check" size={20} ariaHidden="true" />
+                  </div>
                   <h4 className="text-sm font-bold text-slate-300">Queue is Clear</h4>
                   <p className="text-xs text-slate-500">
                     No other patients are currently waiting for this doctor.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+                <div className="space-y-2.5 max-h-[460px] overflow-y-auto pr-1">
                   {waitingList.map((item) => {
                     const isNext = item.position === 1
                     return (
                       <div
                         key={`${item.token_number}-${item.position}`}
-                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                        className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
                           isNext
                             ? 'bg-amber-500/10 border-amber-500/30 text-amber-200 ring-1 ring-amber-500/20'
                             : 'bg-slate-800/60 border-slate-700/50 hover:bg-slate-800 text-slate-200'
                         }`}
                       >
-                        <div className="flex items-center gap-3.5">
+                        <div className="flex items-center gap-3">
                           {/* Position Badge */}
                           <div
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm ${
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ${
                               isNext
                                 ? 'bg-amber-400 text-slate-950 font-black'
                                 : 'bg-slate-700 text-slate-300'
                             }`}
                           >
-                            {item.position}
+                            #{item.position}
                           </div>
 
                           {/* Token Display */}
                           <div>
-                            <div className="font-mono text-2xl font-black tracking-tight">
+                            <div className="font-mono text-xl sm:text-2xl font-black tracking-tight">
                               {item.token_display}
                             </div>
                             {isNext && (
@@ -450,7 +456,7 @@ export default function WaitingRoomMonitor({ initialDoctorId = null, standalone 
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
           <span>
-            Zero-PII Public Display • Tokens only. Patient identities and health records remain strictly confidential.
+            Zero-PII Public Display • Tokens only. Patient identities and clinical records remain strictly confidential.
           </span>
         </div>
         <div className="flex items-center gap-4 text-[11px]">

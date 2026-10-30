@@ -49,6 +49,32 @@ class DoctorUpdate(BaseModel):
     available_days: Optional[List[str]] = None
 
 
+class DoctorProfileSelfUpdate(BaseModel):
+    bio: Optional[str] = None
+    is_available: Optional[bool] = None
+    available_days: Optional[List[str]] = None
+    consultation_fee: Optional[float] = Field(None, ge=0.0)
+
+
+class DoctorNextAppointmentSummary(BaseModel):
+    id: uuid.UUID
+    appointment_token: str
+    appointment_date: date
+    appointment_time: str
+    patient_name: str
+    status: str
+
+
+class DoctorDashboardStatsResponse(BaseModel):
+    doctor_id: uuid.UUID
+    doctor_name: str
+    today_appointments: int
+    waiting_patients: int
+    completed_consultations: int
+    next_appointment: Optional[DoctorNextAppointmentSummary] = None
+    queue_date: date
+
+
 class DoctorResponse(DoctorBase):
     id: uuid.UUID
     user_id: uuid.UUID
@@ -71,6 +97,7 @@ class DoctorListResponse(BaseModel):
 class DoctorSlot(BaseModel):
     time: str  # "HH:MM" e.g., "09:00", "09:30"
     is_available: bool
+    status: Optional[str] = "available"  # "available", "booked", "past", "unavailable"
 
 
 class DoctorSlotsDayResponse(BaseModel):

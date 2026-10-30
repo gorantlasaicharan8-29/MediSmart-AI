@@ -482,3 +482,103 @@ async def test_token_uniqueness_enforced_in_postgresql():
             )
             session.add(appt2)
             await session.commit()
+
+
+# ==============================================================================
+# Remediation Tests — Booking Modal & Fault-Isolated Notifications
+# ==============================================================================
+
+@pytest.mark.asyncio
+async def test_get_doctor_slots_nonexistent_doctor(client: AsyncClient):
+    """Verify querying slots for a non-existent doctor returns 404 Not Found."""
+    fake_doc_id = uuid.uuid4()
+    future_date = (date.today() + timedelta(days=2)).isoformat()
+    res = await client.get(f"/api/v1/doctors/{fake_doc_id}/slots?date={future_date}")
+    assert res.status_code == 404
+    assert "doctor not found" in res.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_get_doctor_slots_contains_status_attribute(client: AsyncClient):
+    """Verify that DoctorSlot responses contain the granular status attribute."""
+    doc_id, _ = await create_test_doctor_fixture()
+    future_date = (date.today() + timedelta(days=3)).isoformat()
+    res = await client.get(f"/api/v1/doctors/{doc_id}/slots?date={future_date}")
+    assert res.status_code == 200
+    data = res.json()
+    assert "slots" in data
+    assert len(data["slots"]) > 0
+    first_slot = data["slots"][0]
+    assert "time" in first_slot
+    assert "is_available" in first_slot
+    assert "status" in first_slot
+    assert first_slot["status"] in ("available", "booked", "past", "unavailable")
+
+
+@pytest.mark.asyncio
+async def test_book_appointment_fault_isolated_when_notification_fails(client: AsyncClient, monkeypatch):
+    """
+    Verify fault isolation: If the notification service or table raises an error,
+    the primary appointment booking MUST succeed (201 Created) without rolling back
+    the appointment or throwing an HTTP 500 error.
+    """
+    from app.services.notification import notification_service
+
+    async def mock_fail_notif(*args, **kwargs):
+        raise RuntimeError("Simulated notification service outage or missing table")
+
+    monkeypatch.setattr(notification_service, "create_appointment_booked_notification", mock_fail_notif)
+
+    doc_id, _ = await create_test_doctor_fixture()
+    patient_id, headers = await create_test_user("patient")
+    future_date = (date.today() + timedelta(days=5)).isoformat()
+
+    payload = {
+        "doctor_id": str(doc_id),
+        "appointment_date": future_date,
+        "appointment_time": "11:30",
+        "notes": "Testing notification fault isolation",
+    }
+
+    res = await client.post("/api/v1/appointments", json=payload, headers=headers)
+    assert res.status_code == 201, f"Expected 201 but got {res.status_code}: {res.text}"
+    data = res.json()
+    assert data["status"] == "scheduled"
+    assert "appointment_token" in data
+    assert data["appointment_token"].startswith("MS-")
+
+    # Verify the appointment was genuinely committed to PostgreSQL
+    async with AsyncSessionLocal() as session:
+        check_q = select(Appointment).where(Appointment.id == uuid.UUID(data["id"]))
+        result = await session.execute(check_q)
+        appt_in_db = result.scalar_one_or_none()
+        assert appt_in_db is not None
+        assert appt_in_db.appointment_token == data["appointment_token"]
+
+
+@pytest.mark.asyncio
+async def test_failed_booking_does_not_create_partial_record(client: AsyncClient):
+    """Verify that invalid booking attempts (e.g. past dates) do not create partial records."""
+    doc_id, _ = await create_test_doctor_fixture()
+    patient_id, headers = await create_test_user("patient")
+    past_date = (date.today() - timedelta(days=2)).isoformat()
+
+    payload = {
+        "doctor_id": str(doc_id),
+        "appointment_date": past_date,
+        "appointment_time": "10:00",
+        "notes": "Attempting past date booking",
+    }
+
+    res = await client.post("/api/v1/appointments", json=payload, headers=headers)
+    assert res.status_code == 400
+    assert "past date" in res.json()["detail"].lower()
+
+    # Confirm no appointment was created for this patient on the past date
+    async with AsyncSessionLocal() as session:
+        check_q = select(Appointment).where(
+            Appointment.patient_id == patient_id,
+            Appointment.appointment_date == date.today() - timedelta(days=2),
+        )
+        result = await session.execute(check_q)
+        assert result.scalar_one_or_none() is None

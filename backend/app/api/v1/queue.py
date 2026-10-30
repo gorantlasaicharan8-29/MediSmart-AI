@@ -27,6 +27,7 @@ from app.schemas.queue import (
     QueuePublicBoardResponse,
     QueuePublicItem,
 )
+from app.services.notification import notification_service
 
 logger = logging.getLogger(__name__)
 
@@ -236,6 +237,19 @@ async def check_in_appointment(
     )
     db.add(appointment)
     db.add(queue_entry)
+
+    # Generate patient check-in notification (Fault-isolated)
+    try:
+        await notification_service.create_queue_checked_in_notification(
+            db=db,
+            queue_entry=queue_entry,
+            auto_commit=False,
+        )
+    except Exception as notif_err:
+        logger.error(
+            f"Failed to generate queue check-in notification for entry {queue_entry.id}: {notif_err}",
+            exc_info=True,
+        )
 
     try:
         await db.commit()
@@ -601,7 +615,7 @@ async def call_patient(
         )
 
     # 2. Authorization Check
-    await _verify_doctor_access(entry.doctor_id, current_user, db)
+    doctor = await _verify_doctor_access(entry.doctor_id, current_user, db)
 
     # 3. Status Check
     if entry.status != "waiting":
@@ -642,6 +656,21 @@ async def call_patient(
 
     if entry.appointment:
         entry.appointment.status = "in_progress"
+
+    # Generate patient urgent call notification (Fault-isolated)
+    doc_name = doctor.user.full_name if doctor and doctor.user else None
+    try:
+        await notification_service.create_queue_called_notification(
+            db=db,
+            queue_entry=entry,
+            doctor_name=doc_name,
+            auto_commit=False,
+        )
+    except Exception as notif_err:
+        logger.error(
+            f"Failed to generate queue called notification for entry {entry.id}: {notif_err}",
+            exc_info=True,
+        )
 
     try:
         await db.commit()
@@ -742,6 +771,19 @@ async def complete_consultation(
     if entry.appointment:
         entry.appointment.status = "completed"
 
+    # Generate patient consultation completion notification (Fault-isolated)
+    try:
+        await notification_service.create_queue_completed_notification(
+            db=db,
+            queue_entry=entry,
+            auto_commit=False,
+        )
+    except Exception as notif_err:
+        logger.error(
+            f"Failed to generate queue completed notification for entry {entry.id}: {notif_err}",
+            exc_info=True,
+        )
+
     await db.commit()
 
     await queue_ws_manager.broadcast_to_doctor(
@@ -831,6 +873,19 @@ async def skip_patient(
 
     if entry.appointment:
         entry.appointment.status = "no_show"
+
+    # Generate patient missed call notification (Fault-isolated)
+    try:
+        await notification_service.create_queue_skipped_notification(
+            db=db,
+            queue_entry=entry,
+            auto_commit=False,
+        )
+    except Exception as notif_err:
+        logger.error(
+            f"Failed to generate queue skipped notification for entry {entry.id}: {notif_err}",
+            exc_info=True,
+        )
 
     await db.commit()
 

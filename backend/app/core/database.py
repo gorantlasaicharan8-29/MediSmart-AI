@@ -6,12 +6,15 @@ from sqlalchemy.ext.asyncio import (
 )
 from app.core.config import settings
 
-# Create async engine for PostgreSQL
+# Create async engine for PostgreSQL with connection resilience
+# pool_pre_ping=True: proactively detects and drops stale or closed connections on checkout
+# pool_recycle=1800: recycles idle connections every 30 minutes to prevent disconnects from firewalls/load balancers
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=False,
     future=True,
     pool_pre_ping=True,
+    pool_recycle=1800,
 )
 
 # Async session factory

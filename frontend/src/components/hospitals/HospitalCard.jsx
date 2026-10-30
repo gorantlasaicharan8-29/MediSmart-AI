@@ -1,4 +1,5 @@
 import React from 'react'
+import { Badge, Button, ClinicalIcon } from '../ui'
 
 export default function HospitalCard({
   hospital,
@@ -11,99 +12,124 @@ export default function HospitalCard({
   return (
     <div
       onClick={() => onSelect(hospital)}
-      className={`p-5 rounded-2xl border transition-all cursor-pointer bg-white ${
+      tabIndex={0}
+      role="button"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect(hospital)
+        }
+      }}
+      className={`p-5 rounded-2xl border transition-all cursor-pointer bg-brand-surface outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${
         isSelected
-          ? 'border-teal-500 ring-2 ring-teal-500/20 shadow-md'
-          : 'border-slate-200/90 hover:border-slate-300 hover:shadow-sm'
+          ? 'border-brand-primary ring-2 ring-brand-mint shadow-clinical-sm'
+          : 'border-brand-border hover:border-brand-muted/40 hover:shadow-clinical-xs'
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="space-y-3">
+        {/* Status Badges */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge
+            variant={hospital.data_source === 'verified' ? 'teal' : 'neutral'}
+            size="sm"
+          >
+            {hospital.data_source === 'verified' ? 'Verified Facility' : 'Sample Record'}
+          </Badge>
+
+          <Badge
+            variant={hasCoords ? 'mint' : 'neutral'}
+            size="sm"
+            icon={
+              <ClinicalIcon
+                name={hasCoords ? 'map-pin' : 'alert-circle'}
+                size={12}
+                ariaHidden="true"
+              />
+            }
+          >
+            {hasCoords ? 'GPS Mapped' : 'Location Pending'}
+          </Badge>
+        </div>
+
+        {/* Title & Location */}
         <div>
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            {/* Provenance Badge */}
-            <span
-              className={`text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full border ${
-                hospital.data_source === 'verified'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-amber-50 text-amber-700 border-amber-200'
-              }`}
-            >
-              {hospital.data_source === 'verified' ? 'Verified Partner' : 'Demonstration Data'}
-            </span>
-
-            {/* Coordinate Status */}
-            <span
-              className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
-                hasCoords
-                  ? 'bg-teal-50/70 text-teal-700 border-teal-200/70'
-                  : 'bg-slate-100 text-slate-500 border-slate-200'
-              }`}
-            >
-              {hasCoords ? '📍 GPS Mapped' : '⚠️ Location Pending'}
-            </span>
-          </div>
-
-          <h3 className="text-base font-bold text-slate-900 group-hover:text-teal-600 transition-colors">
+          <h3 className="text-base font-bold text-brand-text group-hover:text-brand-deep transition-colors">
             {hospital.name}
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {hospital.address}, <span className="font-medium text-slate-700">{hospital.city}</span>, {hospital.state}
+          <p className="text-xs text-brand-muted mt-1 leading-relaxed">
+            {hospital.address},{' '}
+            <span className="font-semibold text-brand-text">
+              {hospital.city}
+            </span>
+            , {hospital.state}
           </p>
         </div>
-      </div>
 
-      {/* Specialties */}
-      {hospital.specialties && hospital.specialties.length > 0 && (
-        <div className="mt-3.5 flex flex-wrap gap-1.5">
-          {hospital.specialties.slice(0, 4).map((spec, idx) => (
-            <span
-              key={idx}
-              className="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-slate-50 text-slate-600 border border-slate-100"
-            >
-              {spec}
-            </span>
-          ))}
-          {hospital.specialties.length > 4 && (
-            <span className="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-slate-50 text-slate-400">
-              +{hospital.specialties.length - 4} more
-            </span>
-          )}
-        </div>
-      )}
+        {/* Specialties */}
+        {hospital.specialties && hospital.specialties.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
+            {hospital.specialties.slice(0, 4).map((spec, idx) => (
+              <span
+                key={idx}
+                className="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-brand-ground text-brand-muted border border-brand-border/70"
+              >
+                {spec}
+              </span>
+            ))}
+            {hospital.specialties.length > 4 && (
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-brand-ground text-brand-muted/70">
+                +{hospital.specialties.length - 4} more
+              </span>
+            )}
+          </div>
+        )}
 
-      {/* Contact & Actions */}
-      <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-        <div className="flex items-center gap-2">
-          {hospital.phone && (
-            <span className="font-medium text-slate-700 flex items-center gap-1">
-              📞 {hospital.phone}
-            </span>
-          )}
-        </div>
+        {/* Contact & Actions */}
+        <div className="pt-3 border-t border-brand-border/70 flex items-center justify-between text-xs text-brand-muted">
+          <div className="flex items-center gap-2">
+            {hospital.phone ? (
+              <span className="font-medium text-brand-text flex items-center gap-1.5">
+                <ClinicalIcon
+                  name="heart-pulse"
+                  size={14}
+                  className="text-brand-accent"
+                  ariaHidden="true"
+                />
+                <span className="truncate max-w-[150px]">{hospital.phone}</span>
+              </span>
+            ) : (
+              <span className="text-[11px] text-brand-muted/70">
+                {hospital.city}
+              </span>
+            )}
+          </div>
 
-        <div className="flex items-center gap-2">
-          {hasCoords && (
-            <button
-              type="button"
+          <div className="flex items-center gap-2">
+            {hasCoords && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSelect(hospital)
+                }}
+                className="text-xs text-brand-muted hover:text-brand-deep"
+              >
+                Pin on Map
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={(e) => {
                 e.stopPropagation()
-                onSelect(hospital)
+                onViewDetails(hospital)
               }}
-              className="text-slate-600 hover:text-teal-700 font-semibold px-2 py-1 rounded hover:bg-slate-50 transition-colors"
+              className="text-xs font-semibold"
             >
-              Pin on Map
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              onViewDetails(hospital)
-            }}
-            className="text-teal-600 hover:text-teal-700 font-semibold px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100/70 transition-colors"
-          >
-            Details →
-          </button>
+              Details &rarr;
+            </Button>
+          </div>
         </div>
       </div>
     </div>

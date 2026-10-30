@@ -1,9 +1,63 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+
+  /* Brand Healthcare Palette */
+  --color-brand-deep: #0A3D3A;
+  --color-brand-primary: #0D5C58;
+  --color-brand-accent: #147D77;
+  --color-brand-mint: #D8F3F0;
+  --color-brand-ground: #F9F9F6;
+  --color-brand-surface: #FFFFFF;
+  --color-brand-text: #15201E;
+  --color-brand-muted: #485956;
+  --color-brand-border: #E4E4DC;
+
+  /* Semantic Status Tokens */
+  --color-clinical-success: #0D6838;
+  --color-clinical-success-bg: #EBF8F2;
+  --color-clinical-success-border: #B7E8CF;
+
+  --color-clinical-warning: #8A5B00;
+  --color-clinical-warning-bg: #FFF8E6;
+  --color-clinical-warning-border: #FFE49E;
+
+  --color-clinical-danger: #9E1B1B;
+  --color-clinical-danger-bg: #FDF2F2;
+  --color-clinical-danger-border: #FAC8C8;
+
+  --color-clinical-info: #115E99;
+  --color-clinical-info-bg: #F0F7FF;
+  --color-clinical-info-border: #BFDDFA;
+
+  /* Clinical Restrained Shadows */
+  --shadow-clinical-xs: 0 1px 2px 0 rgba(10, 61, 58, 0.04);
+  --shadow-clinical-sm: 0 1px 3px 0 rgba(10, 61, 58, 0.06), 0 1px 2px -1px rgba(10, 61, 58, 0.04);
+  --shadow-clinical-md: 0 4px 12px -2px rgba(10, 61, 58, 0.08), 0 2px 6px -2px rgba(10, 61, 58, 0.04);
+  --shadow-clinical-lg: 0 12px 28px -4px rgba(10, 61, 58, 0.10), 0 6px 12px -3px rgba(10, 61, 58, 0.05);
+
+  /* Restrained Clinical Border Radii */
+  --radius-clinical-sm: 0.375rem;
+  --radius-clinical: 0.5rem;
+  --radius-clinical-md: 0.75rem;
+  --radius-clinical-lg: 1rem;
+}
+
 @layer base {
   :root {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    --deep-teal: #0A3D3A;
+    --primary-teal: #0D5C58;
+    --teal-accent: #147D77;
+    --soft-mint: #D8F3F0;
+    --warm-bg: #F9F9F6;
+    --card-surface: #FFFFFF;
+    --primary-text: #15201E;
+    --secondary-text: #485956;
+    --light-border: #E4E4DC;
+
+    font-family: var(--font-sans);
     color-scheme: light;
   }
 
@@ -11,5 +65,65 @@
     background-color: #f8fafc;
     color: #0f172a;
     min-height: 100vh;
+  }
+}
+
+@keyframes introLogoFadeZoom {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes introSpinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes introSpinReverse {
+  from {
+    transform: rotate(360deg);
+  }
+
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes introPulseGlow {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes introPulseSubtle {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+
+  50% {
+    transform: scale(1.03);
+    opacity: 1;
   }
 }

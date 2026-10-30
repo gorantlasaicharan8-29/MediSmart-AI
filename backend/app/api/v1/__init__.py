@@ -6,6 +6,7 @@ from app.api.v1.doctors import router as doctors_router
 from app.api.v1.appointments import router as appointments_router
 from app.api.v1.queue import router as queue_router
 from app.api.v1.predictions import router as predictions_router
+from app.api.v1.notifications import router as notifications_router
 
 api_router = APIRouter()
 api_router.include_router(health_router, prefix="", tags=["health"])
@@ -15,3 +16,4 @@ api_router.include_router(doctors_router, prefix="/doctors", tags=["doctors"])
 api_router.include_router(appointments_router, prefix="/appointments", tags=["appointments"])
 api_router.include_router(queue_router, prefix="/queue", tags=["queue"])
 api_router.include_router(predictions_router, prefix="/predictions", tags=["predictions"])
+api_router.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
