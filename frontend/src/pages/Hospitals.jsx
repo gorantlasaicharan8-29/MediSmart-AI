@@ -7,6 +7,7 @@ import HospitalCard from '../components/hospitals/HospitalCard'
 import HospitalFilters from '../components/hospitals/HospitalFilters'
 import HospitalDetailModal from '../components/hospitals/HospitalDetailModal'
 import CreateHospitalModal from '../components/hospitals/CreateHospitalModal'
+import HospitalNoShowAnalyticsCard from '../components/hospitals/HospitalNoShowAnalyticsCard'
 import { Button, Badge, Skeleton, EmptyState, ClinicalIcon } from '../components/ui'
 
 export default function Hospitals() {
@@ -175,6 +176,14 @@ export default function Hospitals() {
           )}
         </div>
       </div>
+
+      {/* Phase 9.3: Hospital Admin AI No-Show Analytics */}
+      {canManageHospitals && (
+        <HospitalNoShowAnalyticsCard
+          hospitalId={user?.hospital_id}
+          title="Hospital Attendance & No-Show Operational Intelligence"
+        />
+      )}
 
       {/* Filter Component */}
       <HospitalFilters

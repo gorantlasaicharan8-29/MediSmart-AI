@@ -66,6 +66,23 @@ def fail_safe_db_isolation_check():
         )
 
 
+@pytest.fixture(scope="session", autouse=True)
+async def ensure_test_database_tables_exist():
+    """
+    Ensures all registered metadata tables exist in medismart_test_db.
+    Safe and additive (IF NOT EXISTS).
+    """
+    from app.models.base import Base
+    import app.models  # load all models
+    from sqlalchemy import text
+    async with db_mod.engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        # Additive columns for Phase 10.1 (safe IF NOT EXISTS)
+        await conn.execute(text("ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1 NOT NULL;"))
+        await conn.execute(text("ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS amendment_reason TEXT;"))
+        await conn.execute(text("ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS superseded_by_id UUID REFERENCES prescriptions(id) ON DELETE SET NULL;"))
+
+
 @pytest.fixture
 async def client():
     """Async test client for testing FastAPI endpoints against isolated test DB."""

@@ -3,7 +3,20 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.services.notification import SENSITIVE_METADATA_KEYS, sanitize_metadata
+# Sensitive fields to redact from notification metadata
+SENSITIVE_METADATA_KEYS: Set[str] = {
+    "password",
+    "hashed_password",
+    "token",
+    "access_token",
+    "refresh_token",
+    "secret",
+    "secret_key",
+    "credit_card",
+    "clinical_notes",
+    "notes",
+    "cancellation_reason",  # full free-form notes redacted from JSON payload; short reason in body
+}
 
 # Additional clinical and credential keys to redact defensively from response payloads
 DEFENSIVE_REDACT_KEYS: Set[str] = {

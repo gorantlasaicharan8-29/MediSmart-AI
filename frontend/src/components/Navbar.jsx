@@ -84,9 +84,14 @@ export default function Navbar() {
               Doctors
             </NavLink>
             {isAuthenticated && (
-              <NavLink to="/appointments" className={navLinkClass}>
-                Appointments
-              </NavLink>
+              <>
+                <NavLink to="/appointments" className={navLinkClass}>
+                  Appointments
+                </NavLink>
+                <NavLink to="/medical-records" className={navLinkClass}>
+                  Medical Records
+                </NavLink>
+              </>
             )}
             <NavLink to="/queue" className={navLinkClass}>
               Live Queue
@@ -198,13 +203,22 @@ export default function Navbar() {
             Find Doctors
           </NavLink>
           {isAuthenticated && (
-            <NavLink
-              to="/appointments"
-              onClick={() => setMobileMenuOpen(false)}
-              className={mobileNavLinkClass}
-            >
-              My Appointments
-            </NavLink>
+            <>
+              <NavLink
+                to="/appointments"
+                onClick={() => setMobileMenuOpen(false)}
+                className={mobileNavLinkClass}
+              >
+                My Appointments
+              </NavLink>
+              <NavLink
+                to="/medical-records"
+                onClick={() => setMobileMenuOpen(false)}
+                className={mobileNavLinkClass}
+              >
+                Medical Records (EHR)
+              </NavLink>
+            </>
           )}
           <NavLink
             to="/queue"

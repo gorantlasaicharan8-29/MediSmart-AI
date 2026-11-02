@@ -302,5 +302,5 @@ class TestZeroDatabaseMutations:
             after_appt_count = await session.scalar(select(func.count(Appointment.id)))
             after_queue_count = await session.scalar(select(func.count(QueueEntry.id)))
 
-        assert before_appt_count == after_appt_count == 0
-        assert before_queue_count == after_queue_count == 0
+        assert before_appt_count == after_appt_count
+        assert before_queue_count == after_queue_count

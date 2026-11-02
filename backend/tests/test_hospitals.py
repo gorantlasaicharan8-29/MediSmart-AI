@@ -132,8 +132,8 @@ async def test_missing_coordinates_resilience(client):
     assert detail["longitude"] is None
     assert detail["has_coordinates"] is False
 
-    # Fetch list with has_coords=false
-    nocoords_res = await client.get("/api/v1/hospitals?has_coords=false")
+    # Fetch list with has_coords=false and search for the specific record
+    nocoords_res = await client.get(f"/api/v1/hospitals?has_coords=false&search={unique_name}")
     assert nocoords_res.status_code == 200
     assert any(h["id"] == created_id for h in nocoords_res.json()["items"])
 

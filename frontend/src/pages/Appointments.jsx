@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AppointmentCard from '../components/appointments/AppointmentCard'
+import DoctorRecommendationSection from '../components/appointments/DoctorRecommendationSection'
+import BookingModal from '../components/appointments/BookingModal'
 import MLStatusBadge from '../components/ml/MLStatusBadge'
 import {
   cancelAppointment,
@@ -41,6 +43,9 @@ export default function Appointments() {
   const [checkingInId, setCheckingInId] = useState(null)
   const [checkInSuccessData, setCheckInSuccessData] = useState(null)
   const [actionNotice, setActionNotice] = useState(null)
+
+  // Recommendation Booking modal state
+  const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState(null)
 
   const refreshAppointments = useCallback(() => {
     setIsLoading(true)
@@ -234,6 +239,11 @@ export default function Appointments() {
           </Button>
         </div>
       )}
+
+      {/* Phase 9.1: AI Doctor Recommendation System */}
+      <DoctorRecommendationSection
+        onSelectDoctorForBooking={(doc) => setSelectedDoctorForBooking(doc)}
+      />
 
       {/* Category Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-brand-border/70 no-scrollbar">
@@ -538,6 +548,25 @@ export default function Appointments() {
           </Button>
         </ModalFooter>
       </Modal>
+
+      {/* ============================================================ */}
+      {/* BOOKING MODAL FOR RECOMMENDED DOCTOR (Phase 9.1)              */}
+      {/* ============================================================ */}
+      {selectedDoctorForBooking && (
+        <BookingModal
+          doctor={selectedDoctorForBooking}
+          onClose={() => setSelectedDoctorForBooking(null)}
+          onSuccess={(newAppt) => {
+            const docName = selectedDoctorForBooking.user?.full_name || 'your specialist'
+            setSelectedDoctorForBooking(null)
+            refreshAppointments()
+            setActionNotice({
+              type: 'success',
+              message: `Consultation booked with ${docName}! Reference Token: ${newAppt.appointment_token}`,
+            })
+          }}
+        />
+      )}
     </div>
   )
 }

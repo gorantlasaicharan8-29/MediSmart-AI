@@ -119,6 +119,9 @@ export default function DoctorNavbar() {
             <NavLink to="/doctor/profile" className={navLinkClass}>
               My Profile
             </NavLink>
+            <NavLink to="/doctor/safety-dashboard" className={navLinkClass}>
+              Safety Dashboard
+            </NavLink>
           </nav>
 
           {/* Right-Side Controls */}
@@ -266,6 +269,13 @@ export default function DoctorNavbar() {
             className={mobileNavLinkClass}
           >
             My Profile
+          </NavLink>
+          <NavLink
+            to="/doctor/safety-dashboard"
+            onClick={() => setMobileMenuOpen(false)}
+            className={mobileNavLinkClass}
+          >
+            Safety Dashboard
           </NavLink>
 
           <div className="pt-3 border-t border-brand-border">

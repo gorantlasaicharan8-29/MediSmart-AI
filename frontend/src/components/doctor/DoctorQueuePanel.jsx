@@ -9,6 +9,7 @@ import {
 import { useQueueSocket } from '../../hooks/useQueueSocket'
 import { playChime } from '../../utils/sound'
 import { Button, ClinicalIcon, Skeleton } from '../ui'
+import ConsultationRecordModal from './ConsultationRecordModal'
 
 export default function DoctorQueuePanel({ doctorId, onActionComplete }) {
   const [queueData, setQueueData] = useState(null)
@@ -18,6 +19,7 @@ export default function DoctorQueuePanel({ doctorId, onActionComplete }) {
   const [actionSuccess, setActionSuccess] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [activeConsultationAppt, setActiveConsultationAppt] = useState(null)
 
   // Fetch full clinical queue for doctor
   const fetchQueue = useCallback(async () => {
@@ -247,16 +249,40 @@ export default function DoctorQueuePanel({ doctorId, onActionComplete }) {
               </div>
 
               {/* Consultation Control Actions */}
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {currentConsultation.appointment_id && (
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    className="flex-1 text-xs py-2 bg-brand-primary hover:bg-brand-deep text-white font-bold shadow-xs cursor-pointer"
+                    onClick={() =>
+                      setActiveConsultationAppt({
+                        id: currentConsultation.appointment_id,
+                        appointment_token: currentConsultation.appointment_token,
+                        appointment_time: currentConsultation.appointment_time,
+                        patient: {
+                          full_name: currentConsultation.patient_name,
+                          phone: currentConsultation.patient_phone,
+                          email: currentConsultation.patient_email,
+                        },
+                      })
+                    }
+                    disabled={isSubmitting}
+                    title="Open clinical notes, clinician diagnosis, and digital prescriptions editor"
+                  >
+                    <ClinicalIcon name="notes" size={14} className="mr-1.5" />
+                    EHR Notes & Rx
+                  </Button>
+                )}
                 <Button
                   size="sm"
-                  variant="primary"
-                  className="flex-1 text-xs py-2 bg-brand-primary hover:bg-brand-deep text-white font-bold shadow-xs cursor-pointer"
+                  variant={currentConsultation.appointment_id ? 'secondary' : 'primary'}
+                  className={`${currentConsultation.appointment_id ? '' : 'flex-1'} text-xs py-2 font-bold cursor-pointer`}
                   onClick={handleCompleteCurrent}
                   disabled={isSubmitting}
                 >
                   <ClinicalIcon name="check" size={14} className="mr-1.5" />
-                  Complete Consultation
+                  {currentConsultation.appointment_id ? 'Quick Complete' : 'Complete Consultation'}
                 </Button>
                 <Button
                   size="sm"
@@ -375,6 +401,23 @@ export default function DoctorQueuePanel({ doctorId, onActionComplete }) {
             </div>
           )}
         </>
+      )}
+
+      {/* EHR Clinical Consultation Modal */}
+      {activeConsultationAppt && (
+        <ConsultationRecordModal
+          appointment={activeConsultationAppt}
+          isOpen={Boolean(activeConsultationAppt)}
+          onClose={() => setActiveConsultationAppt(null)}
+          onSaved={async () => {
+            showFeedback(
+              `EHR Consultation recorded & completed for ${activeConsultationAppt.patient?.full_name || 'patient'}.`
+            )
+            setActiveConsultationAppt(null)
+            await refresh()
+            if (onActionComplete) onActionComplete()
+          }}
+        />
       )}
     </div>
   )

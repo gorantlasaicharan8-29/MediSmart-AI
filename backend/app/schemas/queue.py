@@ -77,6 +77,7 @@ class DoctorQueueItemResponse(BaseModel):
     appointment_id: uuid.UUID
     appointment_token: str
     appointment_time: str
+    estimated_wait_minutes: Optional[int] = None
     checked_in_at: datetime
     called_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None

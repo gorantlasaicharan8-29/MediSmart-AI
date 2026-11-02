@@ -248,7 +248,12 @@ async def list_appointments(
         if not doc_id:
             return AppointmentListResponse(items=[], total=0, page=page, page_size=page_size)
         query = query.where(Appointment.doctor_id == doc_id)
-    # Hospital admin or System admin can view all
+    elif current_user.role == "hospital_admin":
+        if current_user.hospital_id:
+            query = query.where(Appointment.hospital_id == current_user.hospital_id)
+        else:
+            return AppointmentListResponse(items=[], total=0, page=page, page_size=page_size)
+    # System admin can view all
 
     if status_filter:
         query = query.where(Appointment.status == status_filter)
@@ -327,6 +332,13 @@ async def get_appointment_by_id(
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied: You can only view your assigned appointments",
+            )
+
+    if current_user.role == "hospital_admin":
+        if current_user.hospital_id and appointment.hospital_id != current_user.hospital_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: You can only view appointments for your assigned hospital",
             )
 
     return appointment

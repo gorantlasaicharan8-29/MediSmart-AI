@@ -5,6 +5,8 @@ import { getMyDoctorProfile, getMyDoctorStats, getAppointments } from '../../ser
 import DoctorStatCard from '../../components/doctor/DoctorStatCard'
 import DoctorAppointmentTable from '../../components/doctor/DoctorAppointmentTable'
 import DoctorQueuePanel from '../../components/doctor/DoctorQueuePanel'
+import DoctorQueueAnalyticsCard from '../../components/doctor/DoctorQueueAnalyticsCard'
+import DoctorAttendanceRiskSummaryCard from '../../components/doctor/DoctorAttendanceRiskSummaryCard'
 import { Button, ClinicalIcon } from '../../components/ui'
 
 function getTodayString() {
@@ -37,6 +39,7 @@ export default function DoctorDashboard() {
   const [appointments, setAppointments] = useState([])
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(true)
   const [appointmentsError, setAppointmentsError] = useState(null)
+  const [queueActionCount, setQueueActionCount] = useState(0)
 
   // 1. Fetch Doctor Profile & Stats
   const loadDoctorData = useCallback(async () => {
@@ -84,6 +87,7 @@ export default function DoctorDashboard() {
   const handleQueueAction = () => {
     loadDoctorData()
     loadAppointments()
+    setQueueActionCount((c) => c + 1)
   }
 
   // Doctor name formatting
@@ -213,6 +217,22 @@ export default function DoctorDashboard() {
           isLoading={isLoadingStats}
         />
       </div>
+
+      {/* Phase 9.2: Intelligent Queue Flow Analytics */}
+      {doctorProfile?.id && (
+        <DoctorQueueAnalyticsCard
+          doctorId={doctorProfile.id}
+          reloadKey={queueActionCount}
+        />
+      )}
+
+      {/* Phase 9.3: AI Appointment Attendance Risk Summary */}
+      {doctorProfile?.id && (
+        <DoctorAttendanceRiskSummaryCard
+          doctorId={doctorProfile.id}
+          reloadKey={queueActionCount}
+        />
+      )}
 
       {/* 3. Two-Column Workspace Layout: Appointments (2/3) + Live Queue Panel (1/3) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-start">

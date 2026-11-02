@@ -5,6 +5,17 @@ from app.models.doctor import Doctor
 from app.models.appointment import Appointment
 from app.models.queue import QueueEntry
 from app.models.notification import Notification
+from app.models.ehr import (
+    ClinicalAuditLog,
+    ConsultationNote,
+    Diagnosis,
+    Prescription,
+    PrescriptionItem,
+)
+from app.models.cdss import (
+    CDSSClinicianFeedback,
+    CDSSSafetyEvent,
+)
 
 __all__ = [
     "Base",
@@ -14,4 +25,11 @@ __all__ = [
     "Appointment",
     "QueueEntry",
     "Notification",
+    "ConsultationNote",
+    "Diagnosis",
+    "Prescription",
+    "PrescriptionItem",
+    "ClinicalAuditLog",
+    "CDSSSafetyEvent",
+    "CDSSClinicianFeedback",
 ]

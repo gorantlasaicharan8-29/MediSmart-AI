@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from app.models.doctor import Doctor
     from app.models.hospital import Hospital
     from app.models.queue import QueueEntry
+    from app.models.ehr import ConsultationNote
 
 
 class Appointment(Base, UUIDMixin, TimestampMixin):
@@ -68,6 +69,12 @@ class Appointment(Base, UUIDMixin, TimestampMixin):
     hospital: Mapped["Hospital"] = relationship("Hospital", back_populates="appointments")
     queue_entry: Mapped[Optional["QueueEntry"]] = relationship(
         "QueueEntry",
+        back_populates="appointment",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    consultation_note: Mapped[Optional["ConsultationNote"]] = relationship(
+        "ConsultationNote",
         back_populates="appointment",
         uselist=False,
         cascade="all, delete-orphan",

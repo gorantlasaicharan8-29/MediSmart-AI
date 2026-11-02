@@ -427,4 +427,363 @@ export async function markAllNotificationsAsRead() {
   })
 }
 
+// ---------------------------------------------------------------------------
+// Phase 9.1: AI-Powered Doctor Recommendations
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch explainable AI doctor recommendations based on patient preferences.
+ * @param {Object} preferences
+ * @param {string} [preferences.specialty]
+ * @param {string} [preferences.city]
+ * @param {string} [preferences.hospital_id]
+ * @param {string} [preferences.hospital_name]
+ * @param {number} [preferences.max_fee]
+ * @param {string} [preferences.preferred_date]
+ * @param {string} [preferences.consultation_type]
+ * @param {number} [preferences.limit]
+ */
+export async function getDoctorRecommendations(preferences = {}) {
+  return await request('/api/v1/recommendations/doctors', {
+    method: 'POST',
+    body: JSON.stringify(preferences),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Phase 9.2: Intelligent Real-Time Queue Predictions & Doctor Analytics
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch authenticated patient's real-time intelligent queue waiting-time prediction.
+ */
+export async function getMyQueuePrediction() {
+  return await request('/api/v1/predictions/queue/my', {
+    method: 'GET',
+  })
+}
+
+/**
+ * Fetch authenticated doctor's intelligent queue analytics.
+ * @param {string} [doctorId] Optional doctor ID for hospital admins / system admins.
+ */
+export async function getDoctorQueueAnalytics(doctorId = null) {
+  const query = doctorId ? `?doctor_id=${encodeURIComponent(doctorId)}` : ''
+  return await request(`/api/v1/predictions/doctor/queue-analytics${query}`, {
+    method: 'GET',
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Phase 9.3: AI Appointment No-Show Prediction & Hospital Analytics
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch detailed no-show risk assessment for a specific appointment.
+ * @param {string} appointmentId
+ */
+export async function getAppointmentNoShowRisk(appointmentId) {
+  return await request(`/api/v1/predictions/appointments/${encodeURIComponent(appointmentId)}/risk`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Fetch doctor's appointments list with no-show risk scoring and summary counts.
+ * @param {Object} [params]
+ * @param {string} [params.date] Filter by consultation date YYYY-MM-DD
+ * @param {string} [params.risk_level] Filter by risk tier: 'all', 'low', 'medium', 'high'
+ * @param {number} [params.page] Page number
+ * @param {number} [params.page_size] Items per page
+ * @param {string} [params.doctorId] Doctor ID (for hospital admin or system admin)
+ */
+export async function getDoctorAppointmentsRisk(params = {}) {
+  const queryParts = []
+  if (params.date) queryParts.push(`date=${encodeURIComponent(params.date)}`)
+  if (params.risk_level) queryParts.push(`risk_level=${encodeURIComponent(params.risk_level)}`)
+  if (params.page) queryParts.push(`page=${encodeURIComponent(params.page)}`)
+  if (params.page_size) queryParts.push(`page_size=${encodeURIComponent(params.page_size)}`)
+  if (params.doctorId) queryParts.push(`doctor_id=${encodeURIComponent(params.doctorId)}`)
+
+  const queryString = queryParts.length > 0 ? `?${queryParts.join('&')}` : ''
+  return await request(`/api/v1/predictions/doctor/appointments-risk${queryString}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Fetch aggregate no-show analytics for hospital administrator.
+ * @param {string} [hospitalId] Optional hospital ID for system admin
+ */
+export async function getHospitalNoShowAnalytics(hospitalId = null) {
+  const query = hospitalId ? `?hospital_id=${encodeURIComponent(hospitalId)}` : ''
+  return await request(`/api/v1/predictions/hospital/no-show-analytics${query}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Dispatch an intelligent, idempotent appointment reminder notification to patient.
+ * @param {string} appointmentId
+ */
+export async function sendAppointmentReminder(appointmentId) {
+  return await request(`/api/v1/predictions/appointments/${encodeURIComponent(appointmentId)}/send-reminder`, {
+    method: 'POST',
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Phase 10: Clinical Consultation Notes & Electronic Health Records (EHR)
+// ---------------------------------------------------------------------------
+
+/**
+ * Physician documents or updates clinical consultation notes & digital prescriptions.
+ * @param {Object} data ConsultationNoteCreate payload
+ */
+export async function createConsultationNote(data) {
+  return await request('/api/v1/ehr/consultations', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Retrieve clinical consultation record for an appointment.
+ * @param {string} appointmentId
+ */
+export async function getConsultationByAppointment(appointmentId) {
+  return await request(`/api/v1/ehr/consultations/appointment/${encodeURIComponent(appointmentId)}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Retrieve clinical consultation record by note ID.
+ * @param {string} consultationId
+ */
+export async function getConsultationById(consultationId) {
+  return await request(`/api/v1/ehr/consultations/${encodeURIComponent(consultationId)}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Retrieve authenticated patient's own electronic health record (EHR) timeline.
+ */
+export async function getMyMedicalHistory() {
+  return await request('/api/v1/ehr/my-history', {
+    method: 'GET',
+  })
+}
+
+/**
+ * Retrieve patient medical history by patient ID (Treating doctor or staff).
+ * @param {string} patientId
+ */
+export async function getPatientMedicalHistory(patientId) {
+  return await request(`/api/v1/ehr/patient/${encodeURIComponent(patientId)}/history`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Coordinate follow-up care or book follow-up appointment with patient notification.
+ * @param {Object} data FollowUpCreateRequest
+ */
+export async function createFollowUp(data) {
+  return await request('/api/v1/ehr/follow-up', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Retrieve a specific digital prescription with medication items and amendment status.
+ * @param {string} prescriptionId
+ */
+export async function getPrescriptionById(prescriptionId) {
+  return await request(`/api/v1/ehr/prescriptions/${encodeURIComponent(prescriptionId)}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Amend an issued digital prescription (creating a new revision and preserving audit history).
+ * @param {string} prescriptionId
+ * @param {Object} data PrescriptionAmendRequest
+ */
+export async function amendPrescription(prescriptionId, data) {
+  return await request(`/api/v1/ehr/prescriptions/${encodeURIComponent(prescriptionId)}/amend`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Retrieve HIPAA/GDPR clinical audit logs for authorized entity reviews.
+ * @param {Object} [params]
+ */
+export async function getClinicalAuditLogs(params = {}) {
+  const query = new URLSearchParams()
+  if (params.patient_id) query.set('patient_id', params.patient_id)
+  if (params.action) query.set('action', params.action)
+  if (params.limit) query.set('limit', String(params.limit))
+  if (params.offset) query.set('offset', String(params.offset))
+  const qs = query.toString() ? `?${query.toString()}` : ''
+
+  return await request(`/api/v1/ehr/audit-logs${qs}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Clinical Decision Support System (CDSS) APIs
+ */
+
+/**
+ * Perform comprehensive CDSS evaluation (summarization, completeness, Rx safety, guidelines).
+ * @param {Object} payload CDSSComprehensiveRequest
+ */
+export async function evaluateCDSS(payload) {
+  return await request('/api/v1/cdss/evaluate', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+/**
+ * Generate concise structured summary from clinical encounter notes.
+ * @param {Object} notes NoteSummaryInput
+ */
+export async function summarizeClinicalNotes(notes) {
+  return await request('/api/v1/cdss/summarize-notes', {
+    method: 'POST',
+    body: JSON.stringify(notes),
+  })
+}
+
+/**
+ * Audit clinical documentation completeness across essential sections.
+ * @param {Object} notes NoteSummaryInput
+ */
+export async function checkDocumentationCompleteness(notes) {
+  return await request('/api/v1/cdss/check-documentation', {
+    method: 'POST',
+    body: JSON.stringify(notes),
+  })
+}
+
+/**
+ * Check prescribed medications for duplicates, verified interactions, and missing instructions.
+ * @param {Object} payload MedicationSafetyCheckRequest
+ */
+export async function checkMedicationSafety(payload) {
+  return await request('/api/v1/cdss/medication-safety', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+/**
+ * Query accredited clinical practice guidelines for documented condition.
+ * @param {Object} [params]
+ */
+export async function getClinicalGuidelines(params = {}) {
+  const query = new URLSearchParams()
+  if (params.diagnosis) query.set('diagnosis', params.diagnosis)
+  if (params.code) query.set('code', params.code)
+  if (params.specialty) query.set('specialty', params.specialty)
+  const qs = query.toString() ? `?${query.toString()}` : ''
+
+  return await request(`/api/v1/cdss/guidelines${qs}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Retrieve longitudinal patient medical history insights for authorized clinicians.
+ * @param {string} patientId
+ */
+export async function getPatientCDSSInsights(patientId) {
+  return await request(`/api/v1/cdss/patient/${encodeURIComponent(patientId)}/insights`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Retrieve CDSS knowledge base governance metadata and version information.
+ */
+export async function getCDSSKnowledgeBaseMetadata() {
+  return await request('/api/v1/cdss/knowledge-base/metadata', {
+    method: 'GET',
+  })
+}
+
+/**
+ * Acknowledge or dismiss a CDSS safety alert.
+ * @param {Object} payload CDSSSafetyEventAcknowledgeRequest
+ */
+export async function acknowledgeCDSSSafetyEvent(payload) {
+  return await request('/api/v1/cdss/safety-events/acknowledge', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+/**
+ * Submit clinician feedback on CDSS evaluation accuracy.
+ * @param {Object} payload CDSSFeedbackInput
+ */
+export async function submitCDSSFeedback(payload) {
+  return await request('/api/v1/cdss/feedback', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+/**
+ * Retrieve clinician feedback records for QA and governance review.
+ * @param {Object} [params]
+ */
+export async function getCDSSFeedback(params = {}) {
+  const query = new URLSearchParams()
+  if (params.limit) query.append('limit', params.limit)
+  const qs = query.toString() ? `?${query.toString()}` : ''
+  return await request(`/api/v1/cdss/feedback${qs}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Retrieve CDSS safety metrics, alert resolution rates, and governance trends.
+ * @param {Object} [params]
+ */
+export async function getCDSSDashboardMetrics(params = {}) {
+  const query = new URLSearchParams()
+  if (params.hospital_id) query.append('hospital_id', params.hospital_id)
+  if (params.severity) query.append('severity', params.severity)
+  if (params.warning_category) query.append('warning_category', params.warning_category)
+  if (params.start_date) query.append('start_date', params.start_date)
+  if (params.end_date) query.append('end_date', params.end_date)
+  const qs = query.toString() ? `?${query.toString()}` : ''
+  return await request(`/api/v1/cdss/dashboard/metrics${qs}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Retrieve verified absolute clinical contraindications catalog.
+ */
+export async function getCDSSContraindications() {
+  return await request('/api/v1/cdss/contraindications', {
+    method: 'GET',
+  })
+}
+
+
+
+
+
+
+
 

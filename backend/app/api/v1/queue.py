@@ -28,6 +28,7 @@ from app.schemas.queue import (
     QueuePublicItem,
 )
 from app.services.notification import notification_service
+from app.services.queue_waiting_time import QueueWaitingTimeService
 
 logger = logging.getLogger(__name__)
 
@@ -218,7 +219,6 @@ async def check_in_appointment(
     )
     waiting_ahead = waiting_count_res.scalar_one()
     initial_position = waiting_ahead + 1
-    est_wait = waiting_ahead * 15
 
     # 7. Create Queue Entry inside same transaction and atomically update appointment status
     appointment.status = "checked_in"
@@ -232,9 +232,28 @@ async def check_in_appointment(
         token_number=next_token,
         position=initial_position,
         status="waiting",
-        estimated_wait_minutes=est_wait,
+        estimated_wait_minutes=0,
         checked_in_at=datetime.now(timezone.utc),
     )
+
+    # Intelligent ML & Queue Pacing Waiting-Time Calculation
+    is_active, _, active_elapsed, _ = await QueueWaitingTimeService.get_active_consultation_info(
+        appointment.doctor_id, clinic_today, db
+    )
+    hist_avg = await QueueWaitingTimeService.get_doctor_historical_avg_minutes(
+        appointment.doctor_id, appointment.doctor.specialty if appointment.doctor else None, db
+    )
+    _, est_wait, _, _ = QueueWaitingTimeService.calculate_prediction_for_entry(
+        entry=queue_entry,
+        doctor=appointment.doctor,
+        hospital=appointment.hospital,
+        patients_ahead=waiting_ahead,
+        is_active_consultation=is_active,
+        active_elapsed_minutes=active_elapsed,
+        historical_avg_minutes=hist_avg,
+        clinic_today=clinic_today,
+    )
+    queue_entry.estimated_wait_minutes = est_wait
     db.add(appointment)
     db.add(queue_entry)
 
@@ -358,7 +377,23 @@ async def get_my_queue_entry(
         )
         ahead_count = ahead_count_res.scalar_one()
         dyn_position = ahead_count + 1
-        dyn_wait = ahead_count * 15
+
+        is_active, _, active_elapsed, _ = await QueueWaitingTimeService.get_active_consultation_info(
+            entry.doctor_id, clinic_today, db
+        )
+        hist_avg = await QueueWaitingTimeService.get_doctor_historical_avg_minutes(
+            entry.doctor_id, entry.doctor.specialty if entry.doctor else None, db
+        )
+        _, dyn_wait, _, _ = QueueWaitingTimeService.calculate_prediction_for_entry(
+            entry=entry,
+            doctor=entry.doctor,
+            hospital=entry.hospital,
+            patients_ahead=ahead_count,
+            is_active_consultation=is_active,
+            active_elapsed_minutes=active_elapsed,
+            historical_avg_minutes=hist_avg,
+            clinic_today=clinic_today,
+        )
 
     doc_name = entry.doctor.user.full_name if (entry.doctor and entry.doctor.user) else "Doctor"
     hosp_name = entry.hospital.name if entry.hospital else "Hospital"
@@ -424,6 +459,7 @@ async def get_doctor_public_board(
             QueueEntry.queue_date == clinic_today,
             QueueEntry.status.in_(["waiting", "in_consultation"]),
         )
+        .options(selectinload(QueueEntry.appointment))
         .order_by(QueueEntry.token_number.asc())
     )
     entries = entries_res.scalars().all()
@@ -431,6 +467,14 @@ async def get_doctor_public_board(
     current_consult = None
     waiting_items = []
     waiting_idx = 0
+
+    # Intelligent queue parameters for public board
+    is_active, _, active_elapsed, _ = await QueueWaitingTimeService.get_active_consultation_info(
+        doctor_id, clinic_today, db
+    )
+    hist_avg = await QueueWaitingTimeService.get_doctor_historical_avg_minutes(
+        doctor_id, doctor.specialty, db
+    )
 
     for e in entries:
         if e.status == "in_consultation" and current_consult is None:
@@ -443,13 +487,24 @@ async def get_doctor_public_board(
             )
         elif e.status == "waiting":
             waiting_idx += 1
+            patients_ahead = waiting_idx - 1
+            _, wait_mins, _, _ = QueueWaitingTimeService.calculate_prediction_for_entry(
+                entry=e,
+                doctor=doctor,
+                hospital=doctor.hospital,
+                patients_ahead=patients_ahead,
+                is_active_consultation=is_active,
+                active_elapsed_minutes=active_elapsed,
+                historical_avg_minutes=hist_avg,
+                clinic_today=clinic_today,
+            )
             waiting_items.append(
                 QueuePublicItem(
                     token_display=e.token_display,
                     token_number=e.token_number,
                     position=waiting_idx,
                     status=e.status,
-                    estimated_wait_minutes=(waiting_idx - 1) * 15,
+                    estimated_wait_minutes=wait_mins,
                 )
             )
 
@@ -505,6 +560,13 @@ async def get_doctor_clinical_queue(
     total_skipped = 0
     waiting_idx = 0
 
+    is_active, _, active_elapsed, _ = await QueueWaitingTimeService.get_active_consultation_info(
+        doctor_id, clinic_today, db
+    )
+    hist_avg = await QueueWaitingTimeService.get_doctor_historical_avg_minutes(
+        doctor_id, doctor.specialty, db
+    )
+
     for e in entries:
         pat_name = e.patient.full_name if e.patient else "Patient"
         pat_email = e.patient.email if e.patient else None
@@ -526,6 +588,7 @@ async def get_doctor_clinical_queue(
                 appointment_id=e.appointment_id,
                 appointment_token=appt_tok,
                 appointment_time=appt_time,
+                estimated_wait_minutes=0,
                 checked_in_at=e.checked_in_at,
                 called_at=e.called_at,
                 completed_at=e.completed_at,
@@ -533,6 +596,17 @@ async def get_doctor_clinical_queue(
             )
         elif e.status == "waiting":
             waiting_idx += 1
+            patients_ahead = waiting_idx - 1
+            _, wait_mins, _, _ = QueueWaitingTimeService.calculate_prediction_for_entry(
+                entry=e,
+                doctor=doctor,
+                hospital=doctor.hospital,
+                patients_ahead=patients_ahead,
+                is_active_consultation=is_active,
+                active_elapsed_minutes=active_elapsed,
+                historical_avg_minutes=hist_avg,
+                clinic_today=clinic_today,
+            )
             waiting_items.append(
                 DoctorQueueItemResponse(
                     id=e.id,
@@ -547,6 +621,7 @@ async def get_doctor_clinical_queue(
                     appointment_id=e.appointment_id,
                     appointment_token=appt_tok,
                     appointment_time=appt_time,
+                    estimated_wait_minutes=wait_mins,
                     checked_in_at=e.checked_in_at,
                     called_at=e.called_at,
                     completed_at=e.completed_at,

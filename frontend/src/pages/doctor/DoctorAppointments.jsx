@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { getAppointments } from '../../services/api'
 import DoctorAppointmentTable from '../../components/doctor/DoctorAppointmentTable'
 import { Button, ClinicalIcon } from '../../components/ui'
@@ -12,8 +13,12 @@ function getTodayString() {
 }
 
 export default function DoctorAppointments() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialRiskFilter = searchParams.get('risk_level') || 'all'
+
   const [selectedDate, setSelectedDate] = useState(getTodayString())
   const [statusFilter, setStatusFilter] = useState('')
+  const [riskFilter, setRiskFilter] = useState(initialRiskFilter)
   const [searchQuery, setSearchQuery] = useState('')
   const [appointments, setAppointments] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -39,14 +44,51 @@ export default function DoctorAppointments() {
     fetchAppointments()
   }, [fetchAppointments])
 
-  // Client-side search filtering by patient name or reference token
+  // Client-side search and risk filtering
   const filteredAppointments = appointments.filter((appt) => {
-    if (!searchQuery.trim()) return true
-    const q = searchQuery.toLowerCase()
-    const patientName = appt.patient?.full_name?.toLowerCase() || ''
-    const token = appt.appointment_token?.toLowerCase() || ''
-    return patientName.includes(q) || token.includes(q)
+    // 1. Text search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      const patientName = appt.patient?.full_name?.toLowerCase() || ''
+      const token = appt.appointment_token?.toLowerCase() || ''
+      if (!patientName.includes(q) && !token.includes(q)) return false
+    }
+
+    // 2. Risk filter heuristic (if scheduled)
+    if (riskFilter && riskFilter !== 'all') {
+      const isSched = ['scheduled', 'checked_in'].includes(appt.status)
+      if (!isSched) return false
+
+      const apptDate = new Date(appt.appointment_date)
+      const createdDate = new Date(appt.created_at || appt.appointment_date)
+      const leadTime = Math.max(0, Math.round((apptDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)))
+
+      // Approximated tier based on lead time and notes for client list filter
+      let approxTier = 'low'
+      if (leadTime > 7) {
+        approxTier = 'high'
+      } else if (leadTime >= 3) {
+        approxTier = 'medium'
+      }
+
+      if (approxTier !== riskFilter) return false
+    }
+
+    return true
   })
+
+  const handleRiskChange = (newRisk) => {
+    setRiskFilter(newRisk)
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (newRisk && newRisk !== 'all') {
+        next.set('risk_level', newRisk)
+      } else {
+        next.delete('risk_level')
+      }
+      return next
+    }, { replace: true })
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-fadeIn">
@@ -136,6 +178,8 @@ export default function DoctorAppointments() {
         onDateChange={setSelectedDate}
         statusFilter={statusFilter}
         onStatusChange={setStatusFilter}
+        riskFilter={riskFilter}
+        onRiskChange={handleRiskChange}
       />
     </div>
   )

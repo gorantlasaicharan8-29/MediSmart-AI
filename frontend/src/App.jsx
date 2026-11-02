@@ -10,6 +10,7 @@ import Home from './pages/Home'
 const Hospitals = lazy(() => import('./pages/Hospitals'))
 const Doctors = lazy(() => import('./pages/Doctors'))
 const Appointments = lazy(() => import('./pages/Appointments'))
+const MedicalRecords = lazy(() => import('./pages/MedicalRecords'))
 const Queue = lazy(() => import('./pages/Queue'))
 const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
@@ -25,6 +26,7 @@ const DoctorQueue = lazy(() => import('./pages/doctor/DoctorQueue'))
 const DoctorSchedule = lazy(() => import('./pages/doctor/DoctorSchedule'))
 const DoctorNotifications = lazy(() => import('./pages/doctor/DoctorNotifications'))
 const DoctorProfile = lazy(() => import('./pages/doctor/DoctorProfile'))
+const ClinicalSafetyDashboard = lazy(() => import('./pages/doctor/ClinicalSafetyDashboard'))
 
 function PageFallback() {
   return (
@@ -52,6 +54,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Appointments />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="medical-records"
+                element={
+                  <ProtectedRoute>
+                    <MedicalRecords />
                   </ProtectedRoute>
                 }
               />
@@ -96,6 +106,7 @@ export default function App() {
               <Route path="schedule" element={<DoctorSchedule />} />
               <Route path="notifications" element={<DoctorNotifications />} />
               <Route path="profile" element={<DoctorProfile />} />
+              <Route path="safety-dashboard" element={<ClinicalSafetyDashboard />} />
             </Route>
 
             {/* Standalone Kiosk/TV Wall Monitor Displays (Zero PII, Fullscreen) */}

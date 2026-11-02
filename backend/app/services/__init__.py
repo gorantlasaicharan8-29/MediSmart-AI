@@ -18,6 +18,10 @@ __all__ = [
     "NotificationService",
     "NotificationResult",
     "notification_service",
+    "NoShowRiskService",
+    "EHRService",
+    "CDSSService",
+    "cdss_service",
 ]
 
 from app.services.notification import (
@@ -25,3 +29,7 @@ from app.services.notification import (
     NotificationService,
     notification_service,
 )
+from app.services.no_show_service import NoShowRiskService
+from app.services.ehr_service import EHRService
+from app.services.cdss_service import CDSSService, cdss_service
+
