@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
+    # Medical Document Storage (Phase 12.0)
+    MEDICAL_REPORTS_STORAGE_DIR: Path = _BACKEND_DIR / "storage" / "medical_reports"
+    MAX_REPORT_FILE_SIZE_BYTES: int = 15 * 1024 * 1024  # 15 MB
+
     @field_validator("SECRET_KEY")
     @classmethod
     def validate_secret_key_strength(cls, v: str) -> str:

@@ -3,7 +3,7 @@ import {
   getCDSSDashboardMetrics,
   getCDSSContraindications,
 } from '../../services/api'
-import { Badge, Button, ClinicalIcon, EmptyState, SkeletonCard } from '../../components/ui'
+import { Button, ClinicalIcon, EmptyState, SkeletonCard } from '../../components/ui'
 
 function formatDate(dateStr) {
   if (!dateStr) return 'N/A'

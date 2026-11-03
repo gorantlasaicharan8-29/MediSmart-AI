@@ -35,3 +35,7 @@ desktop.ini
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Storage & Uploads
+backend/storage/
+storage/

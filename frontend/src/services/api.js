@@ -4,13 +4,15 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
  * Helper to execute fetch requests with credentials included (cookies).
  */
 async function request(url, options = {}) {
+  const headers = { ...options.headers }
+  if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json'
+  }
+
   const config = {
     ...options,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   }
 
   const res = await fetch(`${API_BASE}${url}`, config)
@@ -777,6 +779,147 @@ export async function getCDSSDashboardMetrics(params = {}) {
 export async function getCDSSContraindications() {
   return await request('/api/v1/cdss/contraindications', {
     method: 'GET',
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Phase 12.0: AI Medical Report Analysis & Intelligent Health Document Understanding
+// ---------------------------------------------------------------------------
+
+/**
+ * Upload a medical PDF report for automated extraction and analysis.
+ * @param {FormData} formData
+ */
+export async function uploadMedicalReport(formData) {
+  return await request('/api/v1/medical-reports/upload', {
+    method: 'POST',
+    body: formData,
+  })
+}
+
+/**
+ * List medical documents for current user or authorized patient.
+ * @param {Object} [params]
+ */
+export async function getMedicalReports(params = {}) {
+  const query = new URLSearchParams()
+  if (params.patient_id) query.append('patient_id', params.patient_id)
+  if (params.category) query.append('category', params.category)
+  const qs = query.toString() ? `?${query.toString()}` : ''
+  return await request(`/api/v1/medical-reports${qs}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Get single medical document metadata.
+ * @param {string} documentId
+ */
+export async function getMedicalDocument(documentId) {
+  return await request(`/api/v1/medical-reports/${documentId}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Get complete extraction analysis and parameters for a medical document.
+ * @param {string} documentId
+ */
+export async function getMedicalReportAnalysis(documentId) {
+  return await request(`/api/v1/medical-reports/${documentId}/analysis`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Get extracted medical parameters for a document.
+ * @param {string} documentId
+ */
+export async function getMedicalReportParameters(documentId) {
+  return await request(`/api/v1/medical-reports/${documentId}/parameters`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Get structured plain-language report summary.
+ * @param {string} documentId
+ */
+export async function getMedicalReportSummary(documentId) {
+  return await request(`/api/v1/medical-reports/${documentId}/summary`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Re-trigger extraction and analysis for a medical document.
+ * @param {string} documentId
+ */
+export async function reprocessMedicalReport(documentId) {
+  return await request(`/api/v1/medical-reports/${documentId}/reprocess`, {
+    method: 'POST',
+  })
+}
+
+/**
+ * Submit physician clinical review for a medical report.
+ * @param {string} documentId
+ * @param {Object} payload
+ */
+export async function submitMedicalReportReview(documentId, payload) {
+  return await request(`/api/v1/medical-reports/${documentId}/review`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+/**
+ * Physician correction of an extracted parameter with immutable audit tracking.
+ * @param {string} documentId
+ * @param {string} parameterId
+ * @param {Object} payload
+ */
+export async function correctMedicalParameter(documentId, parameterId, payload) {
+  return await request(`/api/v1/medical-reports/${documentId}/parameters/${parameterId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
+/**
+ * Compare two or more medical reports for the same patient.
+ * @param {Array<string>} documentIds
+ * @param {string} [patientId]
+ */
+export async function compareMedicalReports(documentIds, patientId = null) {
+  const query = new URLSearchParams()
+  documentIds.forEach((id) => query.append('document_ids', id))
+  if (patientId) query.append('patient_id', patientId)
+  return await request(`/api/v1/medical-reports/compare/reports?${query.toString()}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Get historical time-series points for a specific parameter for Recharts.
+ * @param {string} parameterName
+ * @param {string} [patientId]
+ */
+export async function getMedicalParameterTrends(parameterName, patientId = null) {
+  const query = new URLSearchParams({ parameter_name: parameterName })
+  if (patientId) query.append('patient_id', patientId)
+  return await request(`/api/v1/medical-reports/trends/parameter?${query.toString()}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Soft-delete a medical report document.
+ * @param {string} documentId
+ */
+export async function deleteMedicalReport(documentId) {
+  return await request(`/api/v1/medical-reports/${documentId}`, {
+    method: 'DELETE',
   })
 }
 

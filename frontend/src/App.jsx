@@ -11,6 +11,7 @@ const Hospitals = lazy(() => import('./pages/Hospitals'))
 const Doctors = lazy(() => import('./pages/Doctors'))
 const Appointments = lazy(() => import('./pages/Appointments'))
 const MedicalRecords = lazy(() => import('./pages/MedicalRecords'))
+const PatientMedicalReports = lazy(() => import('./pages/patient/PatientMedicalReports'))
 const Queue = lazy(() => import('./pages/Queue'))
 const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
@@ -27,6 +28,7 @@ const DoctorSchedule = lazy(() => import('./pages/doctor/DoctorSchedule'))
 const DoctorNotifications = lazy(() => import('./pages/doctor/DoctorNotifications'))
 const DoctorProfile = lazy(() => import('./pages/doctor/DoctorProfile'))
 const ClinicalSafetyDashboard = lazy(() => import('./pages/doctor/ClinicalSafetyDashboard'))
+const DoctorMedicalReports = lazy(() => import('./pages/doctor/DoctorMedicalReports'))
 
 function PageFallback() {
   return (
@@ -62,6 +64,22 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <MedicalRecords />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="medical-reports"
+                element={
+                  <ProtectedRoute>
+                    <PatientMedicalReports />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="patient/medical-reports"
+                element={
+                  <ProtectedRoute>
+                    <PatientMedicalReports />
                   </ProtectedRoute>
                 }
               />
@@ -107,6 +125,7 @@ export default function App() {
               <Route path="notifications" element={<DoctorNotifications />} />
               <Route path="profile" element={<DoctorProfile />} />
               <Route path="safety-dashboard" element={<ClinicalSafetyDashboard />} />
+              <Route path="medical-reports" element={<DoctorMedicalReports />} />
             </Route>
 
             {/* Standalone Kiosk/TV Wall Monitor Displays (Zero PII, Fullscreen) */}

@@ -1016,7 +1016,7 @@ class CDSSService:
     # 1. Clinical Note Summarization, Symptom Negation, Uncertainty & Family History
     # -----------------------------------------------------------------------
     @classmethod
-    def summarize_clinical_notes(cls, notes: NoteSummaryInput) -> ClinicalNoteSummaryResponse:
+    def summarize_clinical_notes(cls, notes: NoteSummaryInput, patient_insights: Optional[PatientHistoryInsightsResponse] = None) -> ClinicalNoteSummaryResponse:
         """
         Synthesizes active clinical notes into a structured encounter summary.
         - Robust clinical negation handling: denies symptom -> marked NEGATED and added to pertinent_negatives.
@@ -1157,14 +1157,51 @@ class CDSSService:
             if any(w in observations.lower() or w in examination.lower() for w in ["no chest pain", "denies chest pain", "chest non-tender, heart normal"]):
                 contradictions.append("Discordance detected: Chest pain is reported in presenting symptoms, but physical examination notes report no chest pain or normal cardiac findings.")
 
-        # Contradiction: Fever reported but patient documented as afebrile
-        if any(w in symptoms_raw.lower() or w in chief.lower() for w in ["fever", "febrile", "high temperature"]):
-            if any(w in observations.lower() or w in examination.lower() for w in ["afebrile", "normal temperature", "temp 98.", "temp 36."]):
-                contradictions.append("Discordance detected: Fever reported in symptoms, but clinical observations record the patient as afebrile.")
+        # Contradiction: Fever reported but patient documented as afebrile or normal temperature vitals (Scenario D)
+        if any(w in symptoms_raw.lower() or w in chief.lower() for w in ["fever", "febrile", "high temperature", "chills"]):
+            normal_temp_patterns = [
+                "afebrile", "normal temperature", "temp 98.", "temp: 98.", "temp 36.", "temp: 36.",
+                "temp 37.0", "temp 37.1", "temp 37.2", "temp: 37.", "temperature 98.", "temperature 36.",
+                "temperature 37.", "temperature normal", "temperature is normal", "temperature within normal",
+                "temp normal", "temp is normal", "temp within normal", "vitals normal", "vital signs normal",
+                "normal vitals", "normothermic", "patient is afebrile", "afebrile to touch"
+            ]
+            if any(w in observations.lower() or w in examination.lower() for w in normal_temp_patterns):
+                contradictions.append("Discordance detected: Fever is reported in presenting symptoms, but objective vitals/observations document a normal temperature or afebrile state. Clinician review required to reconcile subjective sensation vs objective vital signs.")
 
         # Contradiction: Headache reported in symptoms but denied in review of systems
         if "headache" in symptoms_raw.lower() and ("denies headache" in examination.lower() or "no headache" in examination.lower()):
             contradictions.append("Discordance detected: Headache is listed under symptoms, but physical examination/ROS documents absence of headache.")
+
+        # Cross-Record EHR Discrepancy Detection (Scenario J)
+        if patient_insights:
+            notes_text = f"{chief} {symptoms_raw} {observations} {examination}".lower()
+            # Check EHR chronic diagnoses against current encounter notes
+            for c in patient_insights.chronic_conditions:
+                c_name = c.diagnosis_name.lower()
+                if any(k in c_name for k in ["diabetes", "t2d", "dm", "diabetic"]):
+                    if any(w in notes_text for w in ["denies diabetes", "denies history of diabetes", "no diabetes", "no history of diabetes", "no past medical history", "no prior medical history", "no chronic conditions", "denies chronic"]):
+                        contradictions.append(
+                            f"Cross-Record Discrepancy: Current encounter note documents denial of chronic medical conditions, but longitudinal EHR records confirm documented diagnosis of '{c.diagnosis_name}'. Sources: Current Encounter Notes vs Longitudinal EHR Record. Clinician reconciliation required."
+                        )
+                elif any(k in c_name for k in ["hypertension", "htn", "high blood pressure"]):
+                    if any(w in notes_text for w in ["denies hypertension", "denies history of hypertension", "no hypertension", "no htn", "no past medical history", "no prior medical history"]):
+                        contradictions.append(
+                            f"Cross-Record Discrepancy: Current encounter note documents denial of hypertension, but longitudinal EHR records confirm documented diagnosis of '{c.diagnosis_name}'. Sources: Current Encounter Notes vs Longitudinal EHR Record. Clinician reconciliation required."
+                        )
+                elif "asthma" in c_name:
+                    if any(w in notes_text for w in ["denies asthma", "denies history of asthma", "no asthma"]):
+                        contradictions.append(
+                            f"Cross-Record Discrepancy: Current encounter note documents denial of asthma, but longitudinal EHR records confirm documented diagnosis of '{c.diagnosis_name}'. Sources: Current Encounter Notes vs Longitudinal EHR Record. Clinician reconciliation required."
+                        )
+
+            # Check EHR allergies against current encounter notes
+            if patient_insights.documented_allergies:
+                if any(w in notes_text for w in ["denies drug allergies", "denies allergies", "no drug allergies", "no known drug allergies", "nkda", "no allergies"]):
+                    allergens_str = ", ".join(patient_insights.documented_allergies)
+                    contradictions.append(
+                        f"Cross-Record Discrepancy: Current encounter note states patient denies drug allergies, but longitudinal EHR records confirm documented allergy to '{allergens_str}'. Sources: Current Encounter Notes vs Longitudinal EHR Allergy Record. Clinician verification required before prescribing."
+                    )
 
         # Build executive clinical narrative (strictly excluding NEGATED and FAMILY_HISTORY items)
         present_symptoms = [
@@ -1685,6 +1722,42 @@ class CDSSService:
                         continue
                     drug_match = any(p in norm_name for p in ci_rule["medication_patterns"])
                     if drug_match:
+                        # Scenario E: Handle uncertain vs confirmed pregnancy status
+                        if ci_rule["rule_id"] == "CI-ACE-PREG":
+                            has_preg_term = any(
+                                any(kw in cond for kw in ci_rule["contraindicated_condition_keywords"])
+                                for cond in conds_lower
+                            )
+                            if has_preg_term:
+                                uncertainty_markers = [
+                                    "unknown", "uncertain", "unconfirmed", "pending", "possible",
+                                    "rule out", "unverified", "not documented", "cannot exclude",
+                                    "questionable", "unclear", "equivocal", "test pending", "to be ruled out"
+                                ]
+                                is_uncertain = any(
+                                    any(kw in cond for kw in ci_rule["contraindicated_condition_keywords"])
+                                    and any(um in cond for um in uncertainty_markers)
+                                    for cond in conds_lower
+                                )
+                                if is_uncertain:
+                                    contraindication_alerts.append(
+                                        ContraindicationAlert(
+                                            rule_id="CI-WARN-PREG-UNCONFIRMED",
+                                            medication_name=it.medication_name,
+                                            contraindicated_condition="Uncertain / Unconfirmed Pregnancy Status",
+                                            severity="HIGH",
+                                            clinical_mechanism="Renin-angiotensin system inhibitors cause major fetotoxicity, oligohydramnios, and neonatal renal failure if pregnancy is present (FDA Boxed Warning).",
+                                            clinical_risk="Potential teratogenic risk. Patient pregnancy status is uncertain, pending, or unconfirmed. Do not assume confirmed pregnancy or absence of pregnancy.",
+                                            recommended_action="Information required: Verify patient pregnancy status (serum/urine hCG test) before dispensing or continuing therapy. If confirmed pregnant, immediately discontinue and switch to pregnancy-safe antihypertensive (e.g. Labetalol, Nifedipine, Methyldopa).",
+                                            evidence_source="FDA Boxed Warning: Drugs Acting Directly on the Renin-Angiotensin System / ACOG Practice Guidelines",
+                                            source_url="https://www.accessdata.fda.gov/scripts/cder/daf/",
+                                            rule_version="1.4",
+                                            evidence_classification="CLASS_I_STRONG",
+                                            validation_status="CLINICALLY_VALIDATED",
+                                            kb_version=KB_METADATA["version"],
+                                        )
+                                    )
+                                    continue
                         cond_match = any(
                             any(kw in cond for kw in ci_rule["contraindicated_condition_keywords"])
                             for cond in conds_lower
@@ -1928,8 +2001,8 @@ class CDSSService:
             doctor_id=doctor.id,
             hospital_id=doctor.hospital_id,
             kb_version=KB_METADATA["version"],
-            warning_category="DRUG_INTERACTION",
-            warning_severity="HIGH",
+            warning_category=("CONTRAINDICATION" if payload.rule_identifier.startswith("CI-") else ("ALLERGY_CONFLICT" if "ALLERGY" in payload.rule_identifier.upper() else ("DUPLICATE_THERAPY" if payload.rule_identifier.startswith("DUP-") else "DRUG_INTERACTION"))),
+            warning_severity=("CRITICAL" if payload.rule_identifier.startswith("CI-") or "ALLERGY" in payload.rule_identifier.upper() else "HIGH"),
             rule_identifier=payload.rule_identifier,
             alert_summary=f"Clinician action: {payload.action} for rule {payload.rule_identifier}",
             action_taken="DISMISSED" if payload.action.upper() == "DISMISS" else "ACKNOWLEDGED",
@@ -2566,7 +2639,7 @@ class CDSSService:
             patient_insights = await cls.get_patient_history_insights(pat_uuid, db)
 
         # 4. Generate Summarization with negation, uncertainty, family history, and contradiction checks
-        summary = cls.summarize_clinical_notes(payload.notes)
+        summary = cls.summarize_clinical_notes(payload.notes, patient_insights=patient_insights)
 
         # 5. Audit Documentation Completeness
         completeness = cls.audit_documentation_completeness(payload.notes)

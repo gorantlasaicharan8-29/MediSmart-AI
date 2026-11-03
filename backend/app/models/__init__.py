@@ -16,6 +16,13 @@ from app.models.cdss import (
     CDSSClinicianFeedback,
     CDSSSafetyEvent,
 )
+from app.models.medical_report import (
+    ExtractedMedicalParameter,
+    MedicalDocument,
+    MedicalParameterCorrection,
+    MedicalReportAnalysis,
+    MedicalReportReview,
+)
 
 __all__ = [
     "Base",
@@ -32,4 +39,9 @@ __all__ = [
     "ClinicalAuditLog",
     "CDSSSafetyEvent",
     "CDSSClinicianFeedback",
+    "MedicalDocument",
+    "MedicalReportAnalysis",
+    "ExtractedMedicalParameter",
+    "MedicalParameterCorrection",
+    "MedicalReportReview",
 ]

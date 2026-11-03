@@ -91,6 +91,9 @@ export default function Navbar() {
                 <NavLink to="/medical-records" className={navLinkClass}>
                   Medical Records
                 </NavLink>
+                <NavLink to="/medical-reports" className={navLinkClass}>
+                  AI Reports
+                </NavLink>
               </>
             )}
             <NavLink to="/queue" className={navLinkClass}>
@@ -217,6 +220,13 @@ export default function Navbar() {
                 className={mobileNavLinkClass}
               >
                 Medical Records (EHR)
+              </NavLink>
+              <NavLink
+                to="/medical-reports"
+                onClick={() => setMobileMenuOpen(false)}
+                className={mobileNavLinkClass}
+              >
+                AI Medical Reports
               </NavLink>
             </>
           )}

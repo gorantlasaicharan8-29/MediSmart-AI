@@ -10,6 +10,7 @@ from app.api.v1.notifications import router as notifications_router
 from app.api.v1.recommendations import router as recommendations_router
 from app.api.v1.ehr import router as ehr_router
 from app.api.v1.cdss import router as cdss_router
+from app.api.v1.medical_reports import router as medical_reports_router
 
 api_router = APIRouter()
 api_router.include_router(health_router, prefix="", tags=["health"])
@@ -23,3 +24,4 @@ api_router.include_router(notifications_router, prefix="/notifications", tags=["
 api_router.include_router(recommendations_router, prefix="/recommendations", tags=["recommendations"])
 api_router.include_router(ehr_router, prefix="/ehr", tags=["ehr"])
 api_router.include_router(cdss_router, prefix="/cdss", tags=["cdss"])
+api_router.include_router(medical_reports_router, prefix="/medical-reports", tags=["medical-reports"])
